@@ -1,29 +1,29 @@
-import * as qub from "./Qub";
-import * as xml from "./XML";
+import * as qub from "qub";
+import * as xml from "qub-xml";
 
-function getXMLTextSegments(segments: qub.Iterable<xml.Segment>): qub.Iterable<xml.Text> {
+export function getXMLTextSegments(segments: qub.Iterable<xml.Segment>): qub.Iterable<xml.Text> {
     return segments
         .where((segment: xml.Segment) => segment instanceof xml.Text && !segment.isWhitespace())
         .map((segment: xml.Segment) => segment as xml.Text);
 }
 
-function getXMLElementsAndUnrecognizedTags(segments: qub.Iterable<xml.Segment>): qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> {
+export function getXMLElementsAndUnrecognizedTags(segments: qub.Iterable<xml.Segment>): qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> {
     return segments
         .where((segment: xml.Segment) => segment instanceof xml.Element || segment instanceof xml.EmptyElement || segment instanceof xml.UnrecognizedTag)
         .map((segment: xml.Segment) => segment as xml.Element | xml.EmptyElement | xml.UnrecognizedTag);
 }
 
-function getXMLElements(segments: qub.Iterable<xml.Segment>): qub.Iterable<xml.Element | xml.EmptyElement> {
+export function getXMLElements(segments: qub.Iterable<xml.Segment>): qub.Iterable<xml.Element | xml.EmptyElement> {
     return segments
         .where((segment: xml.Segment) => segment instanceof xml.Element || segment instanceof xml.EmptyElement)
         .map((segment: xml.Segment) => segment as xml.Element | xml.EmptyElement);
 }
 
-function getXMLElementName(xmlElement: xml.Element | xml.EmptyElement | xml.UnrecognizedTag): xml.Name {
-    return xmlElement instanceof xml.UnrecognizedTag ? undefined : xmlElement.getName();
+export function getXMLElementName(xmlElement: xml.Element | xml.EmptyElement | xml.UnrecognizedTag): xml.Name {
+    return !xmlElement || xmlElement instanceof xml.UnrecognizedTag ? undefined : xmlElement.getName();
 }
 
-function getXMLElementNameString(xmlElement: xml.Element | xml.EmptyElement | xml.UnrecognizedTag): string {
+export function getXMLElementNameString(xmlElement: xml.Element | xml.EmptyElement | xml.UnrecognizedTag): string {
     const xmlElementName: xml.Name = getXMLElementName(xmlElement);
     return xmlElementName ? xmlElementName.toString() : undefined;
 }
@@ -34,10 +34,6 @@ function matchesString(value: string, expectedValue: string): boolean {
 
 function matchesName(name: xml.Name, expectedName: string): boolean {
     return matchesString(name.toString(), expectedName);
-}
-
-function startsWithString(prefix: string, fullString: string): boolean {
-    return qub.toLowerCase(prefix) === qub.toLowerCase(fullString.substring(0, qub.getLength(prefix)));
 }
 
 /**
@@ -252,20 +248,20 @@ export class BinaryExpression extends Expression {
     }
 }
 
-class OperatorPrecedence {
+export class OperatorPrecedence {
     public static InfixEquals: number = 0;
     public static InfixNotEquals: number = 0;
 
     public static PrefixNegate: number = 1;
 }
 
-interface ExpressionBuilder {
+export interface ExpressionBuilder {
     getPrecedence(): number;
 
     build(expression: Expression, issues: qub.ArrayList<qub.Issue>): Expression;
 }
 
-class BinaryExpressionBuilder implements ExpressionBuilder {
+export class BinaryExpressionBuilder implements ExpressionBuilder {
     constructor(private _leftExpression: Expression, private _operator: Operator) {
     }
 
@@ -282,6 +278,10 @@ class BinaryExpressionBuilder implements ExpressionBuilder {
     }
 }
 
+/**
+ * An expression used for unary operators that occur before another expression, such as a negation
+ * (!<sub-expression>).
+ */
 export class PrefixExpression extends Expression {
     constructor(private _operator: Operator, private _expression: Expression) {
         super();
@@ -304,7 +304,11 @@ export class PrefixExpression extends Expression {
     }
 }
 
-class PrefixExpressionBuilder implements ExpressionBuilder {
+/**
+ * An expression builder used for unary operators that occur before another expression, such as a
+ * negation (!<sub-expression>).
+ */
+export class PrefixExpressionBuilder implements ExpressionBuilder {
     constructor(private _operator: Operator) {
     }
 
@@ -1419,7 +1423,7 @@ function concatenateExpression(expression: Expression, toAdd: Expression): Expre
     return expression ? (toAdd ? new ConcatenateExpression(expression, toAdd) : expression) : toAdd;
 }
 
-function parseUnquotedStringExpression(isCondition: boolean, lexes: qub.Iterator<xml.Lex>, expressionLexes: qub.ArrayList<xml.Lex>, issues: qub.ArrayList<qub.Issue>): UnquotedStringExpression {
+export function parseUnquotedStringExpression(isCondition: boolean, lexes: qub.Iterator<xml.Lex>, expressionLexes: qub.ArrayList<xml.Lex>, issues: qub.ArrayList<qub.Issue>): UnquotedStringExpression {
     if (lexes.hasCurrent()) {
         expressionLexes.add(lexes.getCurrent());
 
@@ -6621,275 +6625,4 @@ export function getTaskSchema(taskName: string): TaskSchema {
         result = unrecognizedTaskSchema;
     }
     return result;
-}
-
-export function getHover(type: ElementType, elementName: string, attributeName: string, span: qub.Span): qub.Hover {
-    let result: qub.Hover;
-
-    const elementSchema: ElementSchema = getElementSchema(type, elementName);
-    if (elementSchema) {
-        let description: string;
-
-        if (!attributeName) {
-            description = elementSchema.description;
-        }
-        else {
-            const attributeSchema: AttributeSchema = elementSchema.getAttributeSchema(attributeName);
-            if (attributeSchema) {
-                description = attributeSchema.description;
-            }
-        }
-
-        if (description) {
-            result = new qub.Hover(
-                [
-                    description,
-                    `[MSDN](${elementSchema.msdn})`
-                ],
-                span);
-        }
-    }
-
-    return result;
-}
-
-function getCursorParentElement(msbuildDocument: Document, index: number): Element {
-    let cursorParentElement: Element;
-    let cursorElement: Element;
-    let nextCursorElement: Element = msbuildDocument.elements.first((element: Element) => element.containsIndex(index));
-    while (nextCursorElement) {
-        cursorParentElement = cursorElement;
-        cursorElement = nextCursorElement;
-        nextCursorElement = cursorElement.getChildElements().first((element: Element) => element.containsIndex(index));
-    }
-    return cursorParentElement;
-}
-
-function getCursorElement(msbuildDocument: Document, index: number): Element {
-    let cursorParentElement: Element;
-    let cursorElement: Element;
-    let nextCursorElement: Element = msbuildDocument.elements.first((element: Element) => element.containsIndex(index));
-    while (nextCursorElement) {
-        cursorParentElement = cursorElement;
-        cursorElement = nextCursorElement;
-        nextCursorElement = cursorElement.getChildElements().first((element: Element) => element.containsIndex(index));
-    }
-    return cursorElement;
-}
-
-export class Extension extends qub.LanguageExtension<Document> {
-    constructor(platform: qub.Platform) {
-        super(qub.getPackageJson().name, qub.getPackageJson().version, "xml", platform);
-
-        this.setOnProvideHover((msbuildDocument: Document, index: number) => {
-            let hover: qub.Hover;
-
-            if (msbuildDocument) {
-                const element: Element = getCursorElement(msbuildDocument, index);
-                if (element && element.containsIndex(index)) {
-                    for (const attribute of element.attributes) {
-                        if (attribute.name.containsIndex(index)) {
-                            hover = getHover(element.type, element.names.first().toString(), attribute.name.toString(), attribute.name.span);
-                            break;
-                        }
-                    }
-
-                    if (!hover) {
-                        const name: xml.Name = element.getContainingName(index);
-                        if (name) {
-                            hover = getHover(element.type, name.toString(), undefined, name.span);
-                        }
-                    }
-                }
-            }
-
-            if (!hover && !this.isXMLExtensionInstalled()) {
-                hover = xml.Extension.provideHover(msbuildDocument.xmlDocument, index);
-            }
-
-            return hover;
-        });
-
-        this.setOnProvideCompletions(["/", "?", "!"], (msbuildDocument: Document, index: number) => {
-            const completions = new qub.ArrayList<qub.Completion>();
-
-            if (msbuildDocument) {
-                const cursorElement: Element = getCursorElement(msbuildDocument, index);
-                if (cursorElement && cursorElement.containsIndex(index)) {
-                    if (cursorElement.xmlElement instanceof xml.UnrecognizedTag) {
-                        if (cursorElement.xmlElement.leftAngleBracket.afterEndIndex === index) {
-                            if (cursorElement.type === ElementType.Task) {
-                                completions.addAll(taskSchemas.map((taskSchema: TaskSchema) => new qub.Completion(taskSchema.name, new qub.Span(index, 0), taskSchema.description)));
-                            }
-                            else {
-                                const cursorParentElement: Element = getCursorParentElement(msbuildDocument, index);
-                                if (cursorParentElement) {
-                                    const cursorParentElementSchema: ElementSchema = getElementSchema(cursorParentElement.type);
-                                    if (cursorParentElementSchema) {
-                                        completions.addAll(cursorParentElementSchema.childElements
-                                            .map((childElementSchema: ChildElementSchema) => new qub.Completion(childElementSchema.name, new qub.Span(index, 0), childElementSchema.description)));
-                                    }
-                                }
-                                else {
-                                    completions.add(new qub.Completion(projectSchema.name, new qub.Span(index, 0), projectSchema.description));
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        const elementSchema: ElementSchema = getElementSchema(cursorElement.type, cursorElement.names.first().toString());
-                        if (elementSchema) {
-                            const cursorAttribute: Attribute = cursorElement.attributes.first((attribute: Attribute) => attribute.containsIndex(index));
-                            if (cursorAttribute) {
-                                // We enter this block if the attribute contains the index because we don't want to give
-                                // completions after the attribute name and before the end of the value.
-                                if (cursorAttribute.name.containsIndex(index)) {
-                                    const attributeNameBeforeCursor: string = cursorAttribute.name.toString().substr(0, index - cursorAttribute.name.startIndex).toLowerCase();
-
-                                    let matchingAllowedAttributeNames: qub.Iterable<string> = elementSchema.attributeNames
-                                        .where((allowedAttributeName: string) => !cursorElement.containsAttribute(allowedAttributeName) || matchesName(cursorAttribute.name, allowedAttributeName));
-                                    if (attributeNameBeforeCursor) {
-                                        matchingAllowedAttributeNames = matchingAllowedAttributeNames.where((allowedAttributeName: string) => {
-                                            return qub.startsWith(allowedAttributeName.toLowerCase(), attributeNameBeforeCursor);
-                                        });
-                                    }
-
-                                    completions.addAll(matchingAllowedAttributeNames.map((attributeName: string) => {
-                                        const attributeSchema: AttributeSchema = elementSchema.getAttributeSchema(attributeName);
-                                        return new qub.Completion(
-                                            attributeName,
-                                            cursorAttribute.name.span,
-                                            attributeSchema.description);
-                                    }));
-                                }
-                            }
-                            else {
-                                const elementFirstName: xml.Name = cursorElement.names.first();
-                                if (elementFirstName.containsIndex(index)) {
-                                    const prefixBeforeCursor: string = elementFirstName.toString().substring(0, index - elementFirstName.startIndex);
-                                    if (cursorElement.type === ElementType.Task) {
-                                        completions.addAll(taskSchemas
-                                            .where((taskSchema: TaskSchema) => startsWithString(prefixBeforeCursor, taskSchema.name))
-                                            .map((taskSchema: TaskSchema) => new qub.Completion(taskSchema.name, elementFirstName.span, taskSchema.description)));
-                                    }
-                                    else {
-                                        const cursorParentElement: Element = getCursorParentElement(msbuildDocument, index);
-                                        if (cursorParentElement) {
-                                            const cursorParentElementSchema: ElementSchema = getElementSchema(cursorParentElement.type, cursorParentElement.names.first().toString());
-                                            if (cursorParentElementSchema) {
-                                                completions.addAll(cursorParentElementSchema.childElements
-                                                    .where((childElementSchema: ChildElementSchema) => startsWithString(prefixBeforeCursor, childElementSchema.name))
-                                                    .map((childElementSchema: ChildElementSchema) => new qub.Completion(childElementSchema.name, elementFirstName.span, childElementSchema.description)));
-                                            }
-                                        }
-                                        else {
-                                            completions.add(new qub.Completion(projectSchema.name, elementFirstName.span, projectSchema.description));
-                                        }
-                                    }
-                                }
-                                else {
-                                    const cursorXmlElement: xml.Element | xml.EmptyElement | xml.UnrecognizedTag = cursorElement.xmlElement;
-                                    if ((cursorXmlElement instanceof xml.Element && cursorXmlElement.startTag.containsIndex(index)) ||
-                                        (cursorXmlElement instanceof xml.EmptyElement && index <= cursorXmlElement.forwardSlash.startIndex)) {
-
-                                        const absentAttributeNames: qub.Iterable<string> = elementSchema.attributeNames
-                                            .where((allowedAttributeName: string) => !cursorElement.containsAttribute(allowedAttributeName));
-                                        completions.addAll(absentAttributeNames.map((attributeName: string) => {
-                                            const attributeSchema: AttributeSchema = elementSchema.getAttributeSchema(attributeName);
-                                            return new qub.Completion(
-                                                attributeName,
-                                                new qub.Span(index, 0),
-                                                attributeSchema.description);
-                                        }));
-                                    }
-                                }
-                            }
-                        }
-                        else {
-                            const elementFirstName: xml.Name = cursorElement.names.first();
-                            if (elementFirstName.containsIndex(index)) {
-                                const prefixBeforeCursor: string = elementFirstName.toString().substring(0, index - elementFirstName.startIndex);
-                                if (cursorElement.type === ElementType.Task) {
-                                    completions.addAll(taskSchemas
-                                        .where((taskSchema: TaskSchema) => startsWithString(prefixBeforeCursor, taskSchema.name))
-                                        .map((taskSchema: TaskSchema) => new qub.Completion(taskSchema.name, elementFirstName.span, taskSchema.description)));
-                                }
-                                else {
-                                    const cursorParentElement: Element = getCursorParentElement(msbuildDocument, index);
-                                    if (cursorParentElement) {
-                                        const cursorParentElementSchema: ElementSchema = getElementSchema(cursorParentElement.type, cursorParentElement.names.first().toString());
-                                        if (cursorParentElementSchema) {
-                                            completions.addAll(cursorParentElementSchema.childElements
-                                                .where((childElementSchema: ChildElementSchema) => startsWithString(prefixBeforeCursor, childElementSchema.name))
-                                                .map((childElementSchema: ChildElementSchema) => new qub.Completion(childElementSchema.name, elementFirstName.span, childElementSchema.description)));
-                                        }
-                                    }
-                                    else if (startsWithString(prefixBeforeCursor, projectSchema.name)) {
-                                        completions.add(new qub.Completion(projectSchema.name, elementFirstName.span, projectSchema.description));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!completions.any() && !this.isXMLExtensionInstalled()) {
-                completions.addAll(xml.Extension.provideCompletions(msbuildDocument.xmlDocument, index));
-            }
-
-            return completions;
-        });
-
-        this.setOnParsedDocumentChanged((msbuildDocumentChange: qub.ParsedDocumentChange<Document>) => {
-            if (!this.isXMLExtensionInstalled()) {
-                xml.Extension.provideTextCompletion(
-                    new qub.ParsedDocumentChange<xml.Document>(
-                        msbuildDocumentChange.parsedDocument.xmlDocument,
-                        msbuildDocumentChange.editor,
-                        msbuildDocumentChange.span,
-                        msbuildDocumentChange.text));
-            }
-        });
-
-        this.setOnProvideFormattedDocument((msbuildDocument: Document) => {
-            const activeTextEditor: qub.TextEditor = this.platform.getActiveTextEditor();
-            return msbuildDocument.xmlDocument.format({
-                singleIndent: activeTextEditor.getIndent(),
-                newLine: activeTextEditor.getNewLine(),
-                alignAttributes: this.getConfigurationValue<boolean>("formatOptions.alignAttributes", false)
-            });
-        });
-
-        this.setOnProvideIssues((msbuildDocument: Document) => {
-            return this.isXMLExtensionInstalled() ? msbuildDocument.msbuildIssues : msbuildDocument.issues;
-        });
-
-        this.activate();
-    }
-
-    private isXMLExtensionInstalled(): boolean {
-        return this.isExtensionInstalled("qub", "qub-xml");
-    }
-
-    protected isParsable(textDocument: qub.TextDocument): boolean {
-        let result: boolean = false;
-
-        if (textDocument && textDocument.getLanguageId().toLowerCase() === "xml") {
-            const documentUriLower: string = textDocument.getURI().toLowerCase();
-            for (const pattern of msBuildFilePatterns) {
-                const matches: RegExpMatchArray = documentUriLower.match(pattern);
-                if (matches && matches.length === 1) {
-                    result = true;
-                    break;
-                }
-            }
-        }
-
-        return result;
-    }
-
-    protected parseDocument(documentText: string): Document {
-        return parse(documentText);
-    }
 }

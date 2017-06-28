@@ -1,71 +1,266 @@
 import * as assert from "assert";
+import * as qub from "qub";
+import * as xml from "qub-xml";
 
-import * as qub from "../sources/Qub";
 import * as msbuild from "../sources/MSBuild";
-import * as xml from "../sources/XML";
 
-import * as mock from "./Mock";
-import * as xmlTest from "./XML.tests";
+function parseXmlLexes(text: string, startIndex: number = 0): qub.Indexable<xml.Lex> {
+    return new xml.Lexer(text, startIndex).toArrayList();
+}
+
+/**
+ * Parse an XML Name Segment from the provided text at the provided start index.
+ */
+function parseXmlName(text: string, startIndex: number = 0): xml.Name {
+    return new xml.Name(parseXmlLexes(text, startIndex));
+}
+
+/**
+ * Parse an XML QuotedString Segment from the provided text at the provided start index.
+ */
+function parseXmlQuotedString(text: string, startIndex: number = 0): xml.QuotedString {
+    return new xml.QuotedString(parseXmlLexes(text, startIndex));
+}
+
+function parseXmlUnrecognizedTag(text: string, startIndex: number = 0): xml.UnrecognizedTag {
+    return new xml.UnrecognizedTag(parseXmlLexes(text, startIndex));
+}
+
+function parseXmlText(text: string, startIndex: number = 0): xml.Text {
+    return new xml.Text(parseXmlLexes(text, startIndex));
+}
+
+function parseXmlAttribute(text: string, startIndex: number = 0): xml.Attribute {
+    const tokenizer = new xml.Tokenizer(text, startIndex);
+    const tagSegments = new qub.ArrayList<xml.Segment>();
+    return tokenizer.readAttribute(tagSegments);
+}
+
+function parseXmlEmptyElement(text: string, startIndex: number = 0): xml.EmptyElement {
+    const tokenizer = new xml.Tokenizer(text, startIndex);
+    assert.deepEqual(tokenizer.next(), true);
+    assert(tokenizer.getCurrent() instanceof xml.EmptyElement, "The first segment of an EmptyElement's text must be an EmptyElement.");
+    return tokenizer.getCurrent() as xml.EmptyElement;
+}
+
+function parseXmlElement(text: string, startIndex: number = 0): xml.Element {
+    const tokenizer = new xml.Tokenizer(text, startIndex);
+    assert.deepEqual(tokenizer.next(), true);
+    assert(tokenizer.getCurrent() instanceof xml.StartTag, "The first segment of an Element's text must be a start tag.");
+    return xml.parseElement(tokenizer);
+}
 
 function parseAttribute(text: string, startIndex: number = 0): msbuild.Attribute {
-    return new msbuild.Attribute(xmlTest.parseAttribute(text, startIndex));
+    return new msbuild.Attribute(parseXmlAttribute(text, startIndex));
 }
 
 function parseImportEmptyElement(text: string, startIndex: number = 0): msbuild.ImportElement {
-    return new msbuild.ImportElement(xmlTest.parseEmptyElement(text, startIndex));
+    return new msbuild.ImportElement(parseXmlEmptyElement(text, startIndex));
 }
 
 function parseItemEmptyElement(text: string, startIndex: number = 0): msbuild.ItemElement {
-    return new msbuild.ItemElement(xmlTest.parseEmptyElement(text, startIndex));
+    return new msbuild.ItemElement(parseXmlEmptyElement(text, startIndex));
 }
 
 function parseProjectElement(text: string, startIndex: number = 0): msbuild.ProjectElement {
-    return new msbuild.ProjectElement(xmlTest.parseElement(text, startIndex));
+    return new msbuild.ProjectElement(parseXmlElement(text, startIndex));
 }
 
 function parseOtherwiseEmptyElement(text: string, startIndex: number = 0): msbuild.OtherwiseElement {
-    return new msbuild.OtherwiseElement(xmlTest.parseEmptyElement(text, startIndex));
+    return new msbuild.OtherwiseElement(parseXmlEmptyElement(text, startIndex));
 }
 
 function parseWhenEmptyElement(text: string, startIndex: number = 0): msbuild.WhenElement {
-    return new msbuild.WhenElement(xmlTest.parseEmptyElement(text, startIndex));
+    return new msbuild.WhenElement(parseXmlEmptyElement(text, startIndex));
 }
 
 function parseProjectEmptyElement(text: string, startIndex: number = 0): msbuild.ProjectElement {
-    return new msbuild.ProjectElement(xmlTest.parseEmptyElement(text, startIndex));
+    return new msbuild.ProjectElement(parseXmlEmptyElement(text, startIndex));
 }
 
 function parseNegateOperator(text: string, startIndex: number = 0): msbuild.Operator {
-    const lexes: qub.Iterable<xml.Lex> = xmlTest.parseLexes(text, startIndex);
+    const lexes: qub.Iterable<xml.Lex> = parseXmlLexes(text, startIndex);
     return msbuild.createNegateOperator(lexes);
 }
 
 function parseEqualsOperator(text: string, startIndex: number = 0): msbuild.Operator {
-    const lexes: qub.Iterable<xml.Lex> = xmlTest.parseLexes(text, startIndex);
+    const lexes: qub.Iterable<xml.Lex> = parseXmlLexes(text, startIndex);
     return msbuild.createEqualsOperator(lexes);
 }
 
 function parseNotEqualsOperator(text: string, startIndex: number = 0): msbuild.Operator {
-    const lexes: qub.Iterable<xml.Lex> = xmlTest.parseLexes(text, startIndex);
+    const lexes: qub.Iterable<xml.Lex> = parseXmlLexes(text, startIndex);
     return msbuild.createNotEqualsOperator(lexes);
 }
 
 function parseUnquotedStringExpression(text: string, startIndex: number = 0): msbuild.UnquotedStringExpression {
-    const lexes: qub.Iterable<xml.Lex> = xmlTest.parseLexes(text, startIndex);
+    const lexes: qub.Iterable<xml.Lex> = parseXmlLexes(text, startIndex);
     return new msbuild.UnquotedStringExpression(lexes);
 }
 
 function parsePropertyExpression(text: string, startIndex: number = 0): msbuild.PropertyExpression {
-    const lexes: qub.Iterable<xml.Lex> = xmlTest.parseLexes(text, startIndex);
+    const lexes: qub.Iterable<xml.Lex> = parseXmlLexes(text, startIndex);
     return new msbuild.PropertyExpression(lexes);
 }
 
 function parseItemExpression(text: string, startIndex: number = 0): msbuild.ItemExpression {
-    const lexes: qub.Iterable<xml.Lex> = xmlTest.parseLexes(text, startIndex);
+    const lexes: qub.Iterable<xml.Lex> = parseXmlLexes(text, startIndex);
     return new msbuild.ItemExpression(lexes);
 }
 
 suite("MSBuild", () => {
+    suite("getXMLTextSegments()", () => {
+        test("with undefined", () => {
+            assert.throws(() => msbuild.getXMLTextSegments(undefined));
+        });
+
+        test("with null", () => {
+            assert.throws(() => msbuild.getXMLTextSegments(null));
+        });
+
+        test("with empty", () => {
+            const segments = new qub.ArrayList<xml.Segment>();
+            const textSegments: qub.Iterable<xml.Text> = msbuild.getXMLTextSegments(segments);
+            assert.deepStrictEqual(textSegments.toArray(), []);
+        });
+
+        test("with no text segments", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlName("hello", 0), parseXmlQuotedString(`"there"`, 5)]);
+            const textSegments: qub.Iterable<xml.Text> = msbuild.getXMLTextSegments(segments);
+            assert.deepStrictEqual(textSegments.toArray(), []);
+        });
+
+        test("with text segments", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlName("hello", 0), parseXmlText(`"there"`, 5)]);
+            const textSegments: qub.Iterable<xml.Text> = msbuild.getXMLTextSegments(segments);
+            assert.deepStrictEqual(textSegments.toArray(), [parseXmlText(`"there"`, 5)]);
+        });
+    });
+
+    suite("getXMLElementsAndUnrecognizedTags()", () => {
+        test("with undefined", () => {
+            assert.throws(() => msbuild.getXMLElementsAndUnrecognizedTags(undefined));
+        });
+
+        test("with null", () => {
+            assert.throws(() => msbuild.getXMLElementsAndUnrecognizedTags(null));
+        });
+
+        test("with empty", () => {
+            const segments = new qub.ArrayList<xml.Segment>();
+            const result: qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> = msbuild.getXMLElementsAndUnrecognizedTags(segments);
+            assert.deepStrictEqual(result.toArray(), []);
+        });
+
+        test("with no elements, empty elements, or unrecognized tags", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlName("hello", 0), parseXmlQuotedString(`"there"`, 5)]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> = msbuild.getXMLElementsAndUnrecognizedTags(segments);
+            assert.deepStrictEqual(result.toArray(), []);
+        });
+
+        test("with elements", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlElement("<apples></apples>"), parseXmlText(`"there"`, 5), parseXmlElement("<b><c/></b>")]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> = msbuild.getXMLElementsAndUnrecognizedTags(segments);
+            assert.deepStrictEqual(result.toArray(), [parseXmlElement("<apples></apples>"), parseXmlElement("<b><c/></b>")]);
+        });
+
+        test("with empty elements", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlEmptyElement("<apples/>"), parseXmlEmptyElement("<oops/>"), parseXmlText(`"there"`, 5)]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> = msbuild.getXMLElementsAndUnrecognizedTags(segments);
+            assert.deepStrictEqual(result.toArray(), [parseXmlEmptyElement("<apples/>"), parseXmlEmptyElement("<oops/>")]);
+        });
+
+        test("with unrecognized tags", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlUnrecognizedTag("<>"), parseXmlName("oops"), parseXmlText(`"there"`, 5), parseXmlUnrecognizedTag("<)")]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement | xml.UnrecognizedTag> = msbuild.getXMLElementsAndUnrecognizedTags(segments);
+            assert.deepStrictEqual(result.toArray(), [parseXmlUnrecognizedTag("<>"), parseXmlUnrecognizedTag("<)")]);
+        });
+    });
+
+    suite("getXMLElements()", () => {
+        test("with undefined", () => {
+            assert.throws(() => msbuild.getXMLElements(undefined));
+        });
+
+        test("with null", () => {
+            assert.throws(() => msbuild.getXMLElements(null));
+        });
+
+        test("with empty", () => {
+            const segments = new qub.ArrayList<xml.Segment>();
+            const result: qub.Iterable<xml.Element | xml.EmptyElement> = msbuild.getXMLElements(segments);
+            assert.deepStrictEqual(result.toArray(), []);
+        });
+
+        test("with no elements, empty elements, or unrecognized tags", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlName("hello", 0), parseXmlQuotedString(`"there"`, 5)]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement> = msbuild.getXMLElements(segments);
+            assert.deepStrictEqual(result.toArray(), []);
+        });
+
+        test("with elements", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlElement("<apples></apples>"), parseXmlText(`"there"`, 5), parseXmlElement("<b><c/></b>")]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement> = msbuild.getXMLElements(segments);
+            assert.deepStrictEqual(result.toArray(), [parseXmlElement("<apples></apples>"), parseXmlElement("<b><c/></b>")]);
+        });
+
+        test("with empty elements", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlEmptyElement("<apples/>"), parseXmlEmptyElement("<oops/>"), parseXmlText(`"there"`, 5)]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement> = msbuild.getXMLElements(segments);
+            assert.deepStrictEqual(result.toArray(), [parseXmlEmptyElement("<apples/>"), parseXmlEmptyElement("<oops/>")]);
+        });
+
+        test("with unrecognized tags", () => {
+            const segments = new qub.ArrayList<xml.Segment>([parseXmlUnrecognizedTag("<>"), parseXmlName("oops"), parseXmlText(`"there"`, 5), parseXmlUnrecognizedTag("<)")]);
+            const result: qub.Iterable<xml.Element | xml.EmptyElement> = msbuild.getXMLElements(segments);
+            assert.deepStrictEqual(result.toArray(), []);
+        });
+    });
+
+    suite("getXMLElementName()", () => {
+        test("with undefined", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementName(undefined), undefined);
+        });
+
+        test("with null", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementName(null), undefined);
+        });
+
+        test("with element", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementName(parseXmlElement("<a></a>")), parseXmlName("a", 1));
+        });
+
+        test("with empty element", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementName(parseXmlEmptyElement("<b/>")), parseXmlName("b", 1));
+        });
+
+        test("with unrecognized tag", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementName(parseXmlUnrecognizedTag("<")), undefined);
+        });
+    });
+
+    suite("getXMLElementNameString()", () => {
+        test("with undefined", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementNameString(undefined), undefined);
+        });
+
+        test("with null", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementNameString(null), undefined);
+        });
+
+        test("with element", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementNameString(parseXmlElement("<a></a>")), "a");
+        });
+
+        test("with empty element", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementNameString(parseXmlEmptyElement("<b/>")), "b");
+        });
+
+        test("with unrecognized tag", () => {
+            assert.deepStrictEqual(msbuild.getXMLElementNameString(parseXmlUnrecognizedTag("<")), undefined);
+        });
+    });
+
     suite("Operator", () => {
         test("with undefined lexes", () => {
             const o = new msbuild.Operator(undefined, 7);
@@ -98,7 +293,7 @@ suite("MSBuild", () => {
         });
 
         test(`with "="`, () => {
-            const o = new msbuild.Operator(xmlTest.parseLexes("="), 11);
+            const o = new msbuild.Operator(parseXmlLexes("="), 11);
             assert.deepStrictEqual(o.startIndex, 0);
             assert.deepStrictEqual(o.afterEndIndex, 1);
             assert.deepStrictEqual(o.length, 1);
@@ -131,7 +326,7 @@ suite("MSBuild", () => {
         });
 
         test(`with "abc123"`, () => {
-            const e = new msbuild.UnquotedStringExpression(xmlTest.parseLexes("abc123"));
+            const e = new msbuild.UnquotedStringExpression(parseXmlLexes("abc123"));
             assert.deepStrictEqual(e.startIndex, 0);
             assert.deepStrictEqual(e.afterEndIndex, 6);
             assert.deepStrictEqual(e.toString(), "abc123");
@@ -206,7 +401,7 @@ suite("MSBuild", () => {
     suite("PropertyExpression", () => {
         function propertyExpressionTest(text: string): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const e = new msbuild.PropertyExpression(xmlTest.parseLexes(text));
+                const e = new msbuild.PropertyExpression(parseXmlLexes(text));
                 assert.deepStrictEqual(e.startIndex, 0);
                 assert.deepStrictEqual(e.afterEndIndex, text.length);
                 assert.deepStrictEqual(e.toString(), text);
@@ -222,7 +417,7 @@ suite("MSBuild", () => {
     suite("ItemExpression", () => {
         function itemExpressionTest(text: string): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const e = new msbuild.ItemExpression(xmlTest.parseLexes(text));
+                const e = new msbuild.ItemExpression(parseXmlLexes(text));
                 assert.deepStrictEqual(e.startIndex, 0);
                 assert.deepStrictEqual(e.afterEndIndex, text.length);
                 assert.deepStrictEqual(e.toString(), text);
@@ -272,10 +467,52 @@ suite("MSBuild", () => {
         });
     });
 
+    suite("PrefixExpression", () => {
+        test("with operator but no expression", () => {
+            const operator = new msbuild.Operator(parseXmlLexes("!", 23), msbuild.OperatorPrecedence.PrefixNegate);
+            const expression: msbuild.Expression = undefined;
+            const prefixExpression = new msbuild.PrefixExpression(operator, expression);
+            assert.deepEqual(prefixExpression.startIndex, 23);
+            assert.deepEqual(prefixExpression.afterEndIndex, 24);
+            assert.deepStrictEqual(prefixExpression.toString(), "!");
+        });
+
+        test("with operator and expression", () => {
+            const operator = new msbuild.Operator(parseXmlLexes("!", 9), msbuild.OperatorPrecedence.PrefixNegate);
+            const expression: msbuild.Expression = new msbuild.UnquotedStringExpression(parseXmlLexes("false", 10));
+            const prefixExpression = new msbuild.PrefixExpression(operator, expression);
+            assert.deepEqual(prefixExpression.startIndex, 9);
+            assert.deepEqual(prefixExpression.afterEndIndex, 15);
+            assert.deepStrictEqual(prefixExpression.toString(), "!false");
+        });
+    });
+
+    suite("PrefixExpressionBuilder", () => {
+        suite("hasPrecedenceGreaterThanOrEqualTo()", () => {
+            test("with undefined", () => {
+                const operator = new msbuild.Operator(parseXmlLexes("!", 23), msbuild.OperatorPrecedence.PrefixNegate);
+                const builder = new msbuild.PrefixExpressionBuilder(operator);
+                assert.deepStrictEqual(builder.hasPrecedenceGreaterThanOrEqualTo(undefined), true);
+            });
+
+            test("with PrefixExpressionBuilder", () => {
+                const operator = new msbuild.Operator(parseXmlLexes("!", 23), msbuild.OperatorPrecedence.PrefixNegate);
+                const builder = new msbuild.PrefixExpressionBuilder(operator);
+                assert.deepStrictEqual(builder.hasPrecedenceGreaterThanOrEqualTo(builder), false);
+            });
+
+            test("with Unquoted", () => {
+                const operator = new msbuild.Operator(parseXmlLexes("!", 23), msbuild.OperatorPrecedence.PrefixNegate);
+                const builder = new msbuild.PrefixExpressionBuilder(operator);
+                assert.deepStrictEqual(builder.hasPrecedenceGreaterThanOrEqualTo(new msbuild.BinaryExpressionBuilder(undefined, undefined)), true);
+            });
+        });
+    });
+
     suite("Attribute", () => {
         function attributeTest(attributeText: string, expectedName: xml.Name, expectedValue?: xml.QuotedString, expectedExpression?: msbuild.Expression): void {
             test(`with ${qub.escapeAndQuote(attributeText)}`, () => {
-                const xmlAttribute: xml.Attribute = xmlTest.parseAttribute(attributeText);
+                const xmlAttribute: xml.Attribute = parseXmlAttribute(attributeText);
                 const attribute = new msbuild.Attribute(xmlAttribute);
                 assert.deepStrictEqual(attribute.name, expectedName);
                 assert.deepStrictEqual(attribute.value, expectedValue);
@@ -287,18 +524,18 @@ suite("MSBuild", () => {
             });
         }
 
-        attributeTest("name", xmlTest.parseName("name"));
-        attributeTest("name=", xmlTest.parseName("name"));
-        attributeTest("name =", xmlTest.parseName("name"));
-        attributeTest(`name="`, xmlTest.parseName("name"), xmlTest.parseQuotedString(`"`, 5));
-        attributeTest(`name=""`, xmlTest.parseName("name"), xmlTest.parseQuotedString(`""`, 5));
+        attributeTest("name", parseXmlName("name"));
+        attributeTest("name=", parseXmlName("name"));
+        attributeTest("name =", parseXmlName("name"));
+        attributeTest(`name="`, parseXmlName("name"), parseXmlQuotedString(`"`, 5));
+        attributeTest(`name=""`, parseXmlName("name"), parseXmlQuotedString(`""`, 5));
         attributeTest(`name="I'm a value"`,
-            xmlTest.parseName("name"),
-            xmlTest.parseQuotedString(`"I'm a value"`, 5),
+            parseXmlName("name"),
+            parseXmlQuotedString(`"I'm a value"`, 5),
             parseUnquotedStringExpression("I'm a value", 6));
         attributeTest(`condition="I'm a value"`,
-            xmlTest.parseName("condition"),
-            xmlTest.parseQuotedString(`"I'm a value"`, 10),
+            parseXmlName("condition"),
+            parseXmlQuotedString(`"I'm a value"`, 10),
             new msbuild.ConcatenateExpression(
                 parseUnquotedStringExpression("I", 11),
                 new msbuild.QuotedStringExpression(
@@ -342,16 +579,34 @@ suite("MSBuild", () => {
             xmlns?: msbuild.Attribute;
         }
 
-        function projectElementTest(elementText: string, expectedAttributes?: ProjectElementDetails): void {
+        function projectElementTest(elementText: string, expectedAttributes?: ProjectElementDetails, expectedChildElements: msbuild.Element[] = []): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
-                const xmlElement: xml.Element = xmlTest.parseElement(elementText);
+                const xmlElement: xml.Element = parseXmlElement(elementText);
                 const projectElement = new msbuild.ProjectElement(xmlElement);
                 assert.deepStrictEqual(projectElement.span, xmlElement.span);
                 assert.deepStrictEqual(projectElement.defaultTargets, expectedAttributes && expectedAttributes.defaultTargets);
+                assert.deepStrictEqual(projectElement.containsAttribute("DefaultTargets"), expectedAttributes && expectedAttributes.defaultTargets ? true : false);
                 assert.deepStrictEqual(projectElement.initialTargets, expectedAttributes && expectedAttributes.initialTargets);
+                assert.deepStrictEqual(projectElement.containsAttribute("InitialTargets"), expectedAttributes && expectedAttributes.initialTargets ? true : false);
                 assert.deepStrictEqual(projectElement.toolsVersion, expectedAttributes && expectedAttributes.toolsVersion);
+                assert.deepStrictEqual(projectElement.containsAttribute("ToolsVersion"), expectedAttributes && expectedAttributes.toolsVersion ? true : false);
                 assert.deepStrictEqual(projectElement.treatAsLocalProperty, expectedAttributes && expectedAttributes.treatAsLocalProperty);
+                assert.deepStrictEqual(projectElement.containsAttribute("TreatAsLocalProperty"), expectedAttributes && expectedAttributes.treatAsLocalProperty ? true : false);
                 assert.deepStrictEqual(projectElement.xmlns, expectedAttributes && expectedAttributes.xmlns);
+                assert.deepStrictEqual(projectElement.containsAttribute("Xmlns"), expectedAttributes && expectedAttributes.xmlns ? true : false);
+
+                for (let i = -1; i <= xmlElement.afterEndIndex + 1; ++i) {
+                    let expectedName: xml.Name = undefined;
+                    if (xmlElement.startTag && xmlElement.startTag.getName() && xmlElement.startTag.getName().containsIndex(i)) {
+                        expectedName = xmlElement.startTag.getName();
+                    }
+                    else if (xmlElement.endTag && xmlElement.endTag.name && xmlElement.endTag.name.containsIndex(i)) {
+                        expectedName = xmlElement.endTag.name;
+                    }
+                    assert.deepStrictEqual(projectElement.getContainingName(i), expectedName);
+                }
+
+                assert.deepStrictEqual(projectElement.getChildElements().toArray(), expectedChildElements);
             });
         }
 
@@ -388,10 +643,11 @@ suite("MSBuild", () => {
             xmlns: parseAttribute(`Xmlns="a"`, 9),
         });
         projectElementTest(`<Project spam="a"></Project>`);
+        projectElementTest(`<Project><Spam/></Project>`, undefined, [new msbuild.UnrecognizedElement(parseXmlEmptyElement("<Spam/>", 9))]);
 
         function projectEmptyElementTest(emptyElementText: string, expectedAttributes?: ProjectElementDetails): void {
             test(`with ${qub.escapeAndQuote(emptyElementText)}`, () => {
-                const xmlEmptyElement: xml.EmptyElement = xmlTest.parseEmptyElement(emptyElementText);
+                const xmlEmptyElement: xml.EmptyElement = parseXmlEmptyElement(emptyElementText);
                 const projectElement = new msbuild.ProjectElement(xmlEmptyElement);
                 assert.deepStrictEqual(projectElement.span, xmlEmptyElement.span);
                 assert.deepStrictEqual(projectElement.defaultTargets, expectedAttributes && expectedAttributes.defaultTargets);
@@ -399,6 +655,7 @@ suite("MSBuild", () => {
                 assert.deepStrictEqual(projectElement.toolsVersion, expectedAttributes && expectedAttributes.toolsVersion);
                 assert.deepStrictEqual(projectElement.treatAsLocalProperty, expectedAttributes && expectedAttributes.treatAsLocalProperty);
                 assert.deepStrictEqual(projectElement.xmlns, expectedAttributes && expectedAttributes.xmlns);
+                assert.deepStrictEqual(projectElement.getChildElements().toArray(), []);
             });
         }
 
@@ -440,7 +697,7 @@ suite("MSBuild", () => {
     suite("ChooseElement", () => {
         function chooseElementTest(text: string, names: xml.Name[], whens: msbuild.WhenElement[] = [], otherwise?: msbuild.OtherwiseElement): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const xmlElement = xmlTest.parseElement(text);
+                const xmlElement = parseXmlElement(text);
                 const chooseElement = new msbuild.ChooseElement(xmlElement);
                 assert.deepStrictEqual(chooseElement.attributes.toArray(), []);
                 assert.deepStrictEqual(chooseElement.names.toArray(), names);
@@ -452,10 +709,10 @@ suite("MSBuild", () => {
         }
 
         chooseElementTest("<Choose",
-            [xmlTest.parseName("Choose", 1)]);
+            [parseXmlName("Choose", 1)]);
 
         chooseElementTest(`<Choose><When/><Otherwise/></Choose>`,
-            [xmlTest.parseName("Choose", 1), xmlTest.parseName("Choose", 29)],
+            [parseXmlName("Choose", 1), parseXmlName("Choose", 29)],
             [parseWhenEmptyElement("<When/>", 8)],
             parseOtherwiseEmptyElement("<Otherwise/>", 15));
     });
@@ -463,22 +720,24 @@ suite("MSBuild", () => {
     suite("ImportElement", () => {
         function importTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], project?: msbuild.Attribute, condition?: msbuild.Attribute): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const xmlElement = xmlTest.parseEmptyElement(text);
+                const xmlElement: xml.EmptyElement = parseXmlEmptyElement(text);
                 const importElement = new msbuild.ImportElement(xmlElement);
-                assert.deepStrictEqual(importElement.names.toArray(), [xmlTest.parseName("Import", 1)]);
+                assert.deepStrictEqual(importElement.names.toArray(), [parseXmlName("Import", 1)]);
                 assert.deepStrictEqual(importElement.attributes.toArray(), attributes);
                 assert.deepStrictEqual(importElement.span, new qub.Span(0, text.length));
                 assert.deepStrictEqual(importElement.type, msbuild.ElementType.Import);
                 assert.deepStrictEqual(importElement.project, project);
                 assert.deepStrictEqual(importElement.condition, condition);
+
+                assert.deepStrictEqual(importElement.getChildElements().toArray(), []);
             });
         }
 
         importTest("<Import/>",
-            [xmlTest.parseName("Import", 1)]);
+            [parseXmlName("Import", 1)]);
 
         importTest(`<Import Project="abc" Condition="test" />`,
-            [xmlTest.parseName("Import", 1)],
+            [parseXmlName("Import", 1)],
             [
                 parseAttribute(`Project="abc"`, 8),
                 parseAttribute(`Condition="test"`, 22)
@@ -490,7 +749,7 @@ suite("MSBuild", () => {
     suite("ImportGroupElement", () => {
         function importGroupElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], condition?: msbuild.Attribute, imports: msbuild.ImportElement[] = []): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const xmlElement = xmlTest.parseElement(text);
+                const xmlElement = parseXmlElement(text);
                 const importGroupElement = new msbuild.ImportGroupElement(xmlElement);
                 assert.deepStrictEqual(importGroupElement.names.toArray(), names, "Wrong names");
                 assert.deepStrictEqual(importGroupElement.attributes.toArray(), attributes, "Wrong attributes");
@@ -502,10 +761,10 @@ suite("MSBuild", () => {
         }
 
         importGroupElementTest("<ImportGroup></ImportGroup>",
-            [xmlTest.parseName("ImportGroup", 1), xmlTest.parseName("ImportGroup", 15)]);
+            [parseXmlName("ImportGroup", 1), parseXmlName("ImportGroup", 15)]);
 
         importGroupElementTest(`<ImportGroup Condition="blah"><Import/></ImportGroup>`,
-            [xmlTest.parseName("ImportGroup", 1), xmlTest.parseName("ImportGroup", 41)],
+            [parseXmlName("ImportGroup", 1), parseXmlName("ImportGroup", 41)],
             [parseAttribute(`Condition="blah"`, 13)],
             parseAttribute(`Condition="blah"`, 13),
             [parseImportEmptyElement(`<Import/>`, 30)]);
@@ -514,7 +773,7 @@ suite("MSBuild", () => {
     suite("ItemDefinitionGroupElement", () => {
         function itemDefinitionGroupElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], condition?: msbuild.Attribute, items: msbuild.ItemElement[] = []): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const itemDefinitionGroupElement = new msbuild.ItemDefinitionGroupElement(xmlTest.parseElement(text));
+                const itemDefinitionGroupElement = new msbuild.ItemDefinitionGroupElement(parseXmlElement(text));
                 assert.deepStrictEqual(itemDefinitionGroupElement.names.toArray(), names, "Wrong names");
                 assert.deepStrictEqual(itemDefinitionGroupElement.attributes.toArray(), attributes, "Wrong attributes");
                 assert.deepStrictEqual(itemDefinitionGroupElement.span, new qub.Span(0, text.length), "Wrong span");
@@ -525,10 +784,10 @@ suite("MSBuild", () => {
         }
 
         itemDefinitionGroupElementTest("<ItemDefinitionGroup></ItemDefinitionGroup>",
-            [xmlTest.parseName("ItemDefinitionGroup", 1), xmlTest.parseName("ItemDefinitionGroup", 23)]);
+            [parseXmlName("ItemDefinitionGroup", 1), parseXmlName("ItemDefinitionGroup", 23)]);
 
         itemDefinitionGroupElementTest(`<ItemDefinitionGroup Condition="blah"><Cheese/><Apples/></ItemDefinitionGroup>`,
-            [xmlTest.parseName("ItemDefinitionGroup", 1), xmlTest.parseName("ItemDefinitionGroup", 58)],
+            [parseXmlName("ItemDefinitionGroup", 1), parseXmlName("ItemDefinitionGroup", 58)],
             [parseAttribute(`Condition="blah"`, 21)],
             parseAttribute(`Condition="blah"`, 21),
             [
@@ -540,7 +799,7 @@ suite("MSBuild", () => {
     suite("ItemGroupElement", () => {
         function itemGroupElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], condition?: msbuild.Attribute, label?: msbuild.Attribute, items: msbuild.ItemElement[] = []): void {
             test(`with ${qub.escapeAndQuote(text)}`, () => {
-                const itemGroupElement = new msbuild.ItemGroupElement(xmlTest.parseElement(text));
+                const itemGroupElement = new msbuild.ItemGroupElement(parseXmlElement(text));
                 assert.deepStrictEqual(itemGroupElement.names.toArray(), names, "Wrong names");
                 assert.deepStrictEqual(itemGroupElement.attributes.toArray(), attributes, "Wrong attributes");
                 assert.deepStrictEqual(itemGroupElement.span, new qub.Span(0, text.length), "Wrong span");
@@ -552,10 +811,10 @@ suite("MSBuild", () => {
         }
 
         itemGroupElementTest("<ItemGroup></ItemGroup>",
-            [xmlTest.parseName("ItemGroup", 1), xmlTest.parseName("ItemGroup", 13)]);
+            [parseXmlName("ItemGroup", 1), parseXmlName("ItemGroup", 13)]);
 
         itemGroupElementTest(`<ItemGroup Condition="blah" Label="place"><Cheese/><Apples/></ItemGroup>`,
-            [xmlTest.parseName("ItemGroup", 1), xmlTest.parseName("ItemGroup", 62)],
+            [parseXmlName("ItemGroup", 1), parseXmlName("ItemGroup", 62)],
             [parseAttribute(`Condition="blah"`, 11), parseAttribute(`Label="place"`, 28)],
             parseAttribute(`Condition="blah"`, 11),
             parseAttribute(`Label="place"`, 28),
@@ -565,9 +824,191 @@ suite("MSBuild", () => {
             ]);
     });
 
+    suite("ItemMetadataElement", () => {
+        function itemMetadataElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const itemGroupElement = new msbuild.ItemMetadataElement(parseXmlElement(text));
+                assert.deepStrictEqual(itemGroupElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(itemGroupElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(itemGroupElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(itemGroupElement.type, msbuild.ElementType.ItemMetadata, "Wrong type");
+            });
+        }
+
+        itemMetadataElementTest("<spam></spam>",
+            [parseXmlName("spam", 1), parseXmlName("spam", 8)]);
+
+        itemMetadataElementTest(`<apples Condition="blah"></apples>`,
+            [parseXmlName("apples", 1), parseXmlName("apples", 27)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 8))]);
+    });
+
+    suite("OnErrorElement", () => {
+        function onErrorElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], expectedCondition?: msbuild.Attribute, expectedExecuteTargets?: msbuild.Attribute): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const onErrorElement = new msbuild.OnErrorElement(parseXmlElement(text));
+                assert.deepStrictEqual(onErrorElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(onErrorElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(onErrorElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(onErrorElement.type, msbuild.ElementType.OnError, "Wrong type");
+                assert.deepStrictEqual(onErrorElement.condition, expectedCondition);
+                assert.deepStrictEqual(onErrorElement.executeTargets, expectedExecuteTargets);
+            });
+        }
+
+        onErrorElementTest("<OnError></OnError>",
+            [parseXmlName("OnError", 1), parseXmlName("OnError", 11)]);
+
+        onErrorElementTest(`<OnError Condition="blah"></OnError>`,
+            [parseXmlName("OnError", 1), parseXmlName("OnError", 28)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 9))],
+            new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 9)));
+
+        onErrorElementTest(`<OnError ExecuteTargets="blahTarget"></OnError>`,
+            [parseXmlName("OnError", 1), parseXmlName("OnError", 39)],
+            [new msbuild.Attribute(parseXmlAttribute(`ExecuteTargets="blahTarget"`, 9))],
+            undefined,
+            new msbuild.Attribute(parseXmlAttribute(`ExecuteTargets="blahTarget"`, 9)));
+    });
+
+    suite("OutputElement", () => {
+        function outputElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const outputElement = new msbuild.OutputElement(parseXmlElement(text));
+                assert.deepStrictEqual(outputElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(outputElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(outputElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(outputElement.type, msbuild.ElementType.Output, "Wrong type");
+            });
+        }
+
+        outputElementTest("<Output></Output>",
+            [parseXmlName("Output", 1), parseXmlName("Output", 10)]);
+
+        outputElementTest(`<Output Condition="blah"></Output>`,
+            [parseXmlName("Output", 1), parseXmlName("Output", 27)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 8))]);
+    });
+
+    suite("ParameterElement", () => {
+        function parameterElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const parameterElement = new msbuild.ParameterElement(parseXmlElement(text));
+                assert.deepStrictEqual(parameterElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(parameterElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(parameterElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(parameterElement.type, msbuild.ElementType.Parameter, "Wrong type");
+            });
+        }
+
+        parameterElementTest("<Parameter></Parameter>",
+            [parseXmlName("Parameter", 1), parseXmlName("Parameter", 13)]);
+
+        parameterElementTest(`<Parameter Condition="blah"></Parameter>`,
+            [parseXmlName("Parameter", 1), parseXmlName("Parameter", 30)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 11))]);
+    });
+
+    suite("ParameterGroupElement", () => {
+        function parameterGroupElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const parameterGroupElement = new msbuild.ParameterGroupElement(parseXmlElement(text));
+                assert.deepStrictEqual(parameterGroupElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(parameterGroupElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(parameterGroupElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(parameterGroupElement.type, msbuild.ElementType.ParameterGroup, "Wrong type");
+            });
+        }
+
+        parameterGroupElementTest("<ParameterGroup></ParameterGroup>",
+            [parseXmlName("ParameterGroup", 1), parseXmlName("ParameterGroup", 18)]);
+
+        parameterGroupElementTest(`<ParameterGroup Condition="blah"></ParameterGroup>`,
+            [parseXmlName("ParameterGroup", 1), parseXmlName("ParameterGroup", 35)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 16))]);
+    });
+
+    suite("ProjectExtensionsElement", () => {
+        function projectExtensionsElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const projectExtensionsElement = new msbuild.ProjectExtensionsElement(parseXmlElement(text));
+                assert.deepStrictEqual(projectExtensionsElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(projectExtensionsElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(projectExtensionsElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(projectExtensionsElement.type, msbuild.ElementType.ProjectExtensions, "Wrong type");
+            });
+        }
+
+        projectExtensionsElementTest("<ProjectExtensions></ProjectExtensions>",
+            [parseXmlName("ProjectExtensions", 1), parseXmlName("ProjectExtensions", 21)]);
+
+        projectExtensionsElementTest(`<ProjectExtensions Condition="blah"></ProjectExtensions>`,
+            [parseXmlName("ProjectExtensions", 1), parseXmlName("ProjectExtensions", 38)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 19))]);
+    });
+
+    suite("PropertyElement", () => {
+        function propertyElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const projectExtensionsElement = new msbuild.PropertyElement(parseXmlElement(text));
+                assert.deepStrictEqual(projectExtensionsElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(projectExtensionsElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(projectExtensionsElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(projectExtensionsElement.type, msbuild.ElementType.Property, "Wrong type");
+            });
+        }
+
+        propertyElementTest("<Lollipop></Lollipop>",
+            [parseXmlName("Lollipop", 1), parseXmlName("Lollipop", 12)]);
+
+        propertyElementTest(`<Lollipop Condition="blah"></Lollipop>`,
+            [parseXmlName("Lollipop", 1), parseXmlName("Lollipop", 29)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 10))]);
+    });
+
+    suite("PropertyGroupElement", () => {
+        function propertyGroupElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], expectedCondition?: msbuild.Attribute): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const propertyGroupElement = new msbuild.PropertyGroupElement(parseXmlElement(text));
+                assert.deepStrictEqual(propertyGroupElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(propertyGroupElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(propertyGroupElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(propertyGroupElement.type, msbuild.ElementType.PropertyGroup, "Wrong type");
+                assert.deepStrictEqual(propertyGroupElement.condition, expectedCondition);
+            });
+        }
+
+        propertyGroupElementTest("<PropertyGroup></PropertyGroup>",
+            [parseXmlName("PropertyGroup", 1), parseXmlName("PropertyGroup", 17)]);
+
+        propertyGroupElementTest(`<PropertyGroup Condition="blah"></PropertyGroup>`,
+            [parseXmlName("PropertyGroup", 1), parseXmlName("PropertyGroup", 34)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 15))],
+            new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 15)));
+    });
+
+    suite("TargetElement", () => {
+        function targetElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const targetElement = new msbuild.TargetElement(parseXmlElement(text));
+                assert.deepStrictEqual(targetElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(targetElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(targetElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(targetElement.type, msbuild.ElementType.Target, "Wrong type");
+            });
+        }
+
+        targetElementTest("<Target></Target>",
+            [parseXmlName("Target", 1), parseXmlName("Target", 10)]);
+
+        targetElementTest(`<Target Condition="blah"></Target>`,
+            [parseXmlName("Target", 1), parseXmlName("Target", 27)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 8))]);
+    });
+
     suite("UnrecognizedElement", () => {
         test(`with "<"`, () => {
-            const xmlElement = new xml.UnrecognizedTag(xmlTest.parseLexes("<"));
+            const xmlElement = new xml.UnrecognizedTag(parseXmlLexes("<"));
             const unrecognizedElement = new msbuild.UnrecognizedElement(xmlElement);
             assert.deepStrictEqual(unrecognizedElement.attributes.toArray(), []);
             assert.deepStrictEqual(unrecognizedElement.names.toArray(), []);
@@ -578,10 +1019,12 @@ suite("MSBuild", () => {
                 assert.deepStrictEqual(unrecognizedElement.containsIndex(i), 1 <= i);
                 assert.deepStrictEqual(unrecognizedElement.getContainingName(i), undefined);
             }
+
+            assert.deepStrictEqual(unrecognizedElement.getChildElements().toArray(), []);
         });
 
         test(`with "<>"`, () => {
-            const xmlElement = new xml.UnrecognizedTag(xmlTest.parseLexes("<>"));
+            const xmlElement = new xml.UnrecognizedTag(parseXmlLexes("<>"));
             const unrecognizedElement = new msbuild.UnrecognizedElement(xmlElement);
             assert.deepStrictEqual(unrecognizedElement.attributes.toArray(), []);
             assert.deepStrictEqual(unrecognizedElement.names.toArray(), []);
@@ -592,6 +1035,30 @@ suite("MSBuild", () => {
                 assert.deepStrictEqual(unrecognizedElement.containsIndex(i), i === 1);
                 assert.deepStrictEqual(unrecognizedElement.getContainingName(i), undefined);
             }
+
+            assert.deepStrictEqual(unrecognizedElement.getChildElements().toArray(), []);
+        });
+
+        test(`with "<apples><and><bananas/></and></apples>"`, () => {
+            const xmlElement = parseXmlElement("<apples><and><bananas/></and></apples>")
+            const unrecognizedElement = new msbuild.UnrecognizedElement(xmlElement);
+            assert.deepStrictEqual(unrecognizedElement.attributes.toArray(), []);
+            assert.deepStrictEqual(unrecognizedElement.names.toArray(), [parseXmlName("apples", 1), parseXmlName("apples", 31)]);
+            assert.deepStrictEqual(unrecognizedElement.span, new qub.Span(0, 38));
+            assert.deepStrictEqual(unrecognizedElement.type, msbuild.ElementType.Unrecognized);
+
+            for (let i = -1; i <= 3; ++i) {
+                let expectedName: xml.Name = undefined;
+                if (xmlElement.startTag && xmlElement.startTag.getName() && xmlElement.startTag.getName().containsIndex(i)) {
+                    expectedName = xmlElement.startTag.getName();
+                }
+                else if (xmlElement.endTag && xmlElement.endTag.name && xmlElement.endTag.name.containsIndex(i)) {
+                    expectedName = xmlElement.endTag.name;
+                }
+                assert.deepStrictEqual(unrecognizedElement.getContainingName(i), expectedName);
+            }
+
+            assert.deepStrictEqual(unrecognizedElement.getChildElements().toArray(), []);
         });
     });
 
@@ -599,7 +1066,7 @@ suite("MSBuild", () => {
         function validateElementTest(elementType: msbuild.ElementType, elementText: string, expectedIssues: qub.Issue[] = []): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateElement(elementType, xmlTest.parseElement(elementText), issues);
+                msbuild.validateElement(elementType, parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -614,7 +1081,7 @@ suite("MSBuild", () => {
         function validateChooseTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateChoose(xmlTest.parseElement(elementText), issues);
+                msbuild.validateChoose(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -671,7 +1138,7 @@ suite("MSBuild", () => {
         function validateImportTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateImport(xmlTest.parseElement(elementText), issues);
+                msbuild.validateImport(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -720,7 +1187,7 @@ suite("MSBuild", () => {
         function validateImportGroupTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateImportGroup(xmlTest.parseElement(elementText), issues);
+                msbuild.validateImportGroup(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -751,7 +1218,7 @@ suite("MSBuild", () => {
         function validateItemTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateItem(xmlTest.parseElement(elementText), issues);
+                msbuild.validateItem(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -788,7 +1255,7 @@ suite("MSBuild", () => {
         function validateItemDefinitionGroupTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateItemDefinitionGroup(xmlTest.parseElement(elementText), issues);
+                msbuild.validateItemDefinitionGroup(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -821,7 +1288,7 @@ suite("MSBuild", () => {
         function validateItemGroupTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateItemGroup(xmlTest.parseElement(elementText), issues);
+                msbuild.validateItemGroup(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -855,7 +1322,7 @@ suite("MSBuild", () => {
         function validateItemMetadataTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateItemMetadata(xmlTest.parseElement(elementText), issues);
+                msbuild.validateItemMetadata(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -886,7 +1353,7 @@ suite("MSBuild", () => {
         function validateOnErrorTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateOnError(xmlTest.parseElement(elementText), issues);
+                msbuild.validateOnError(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -919,7 +1386,7 @@ suite("MSBuild", () => {
         function validateOtherwiseTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateOtherwise(xmlTest.parseElement(elementText), issues);
+                msbuild.validateOtherwise(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -953,7 +1420,7 @@ suite("MSBuild", () => {
         function validateOutputTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateOutput(xmlTest.parseElement(elementText), issues);
+                msbuild.validateOutput(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1014,7 +1481,7 @@ suite("MSBuild", () => {
         function validateParameterTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateParameter(xmlTest.parseElement(elementText), issues);
+                msbuild.validateParameter(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1046,7 +1513,7 @@ suite("MSBuild", () => {
         function validateParameterGroupTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateParameterGroup(xmlTest.parseElement(elementText), issues);
+                msbuild.validateParameterGroup(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1073,7 +1540,7 @@ suite("MSBuild", () => {
         function validateProjectTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateProject(xmlTest.parseElement(elementText), issues);
+                msbuild.validateProject(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1130,7 +1597,7 @@ suite("MSBuild", () => {
         function validateProjectExtensionsTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateProjectExtensions(xmlTest.parseElement(elementText), issues);
+                msbuild.validateProjectExtensions(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1151,7 +1618,7 @@ suite("MSBuild", () => {
         function validatePropertyTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateProperty(xmlTest.parseElement(elementText), issues);
+                msbuild.validateProperty(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1179,7 +1646,7 @@ suite("MSBuild", () => {
         function validatePropertyGroupTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validatePropertyGroup(xmlTest.parseElement(elementText), issues);
+                msbuild.validatePropertyGroup(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1208,7 +1675,7 @@ suite("MSBuild", () => {
         function validateTargetTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateTarget(xmlTest.parseElement(elementText), issues);
+                msbuild.validateTarget(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1258,7 +1725,7 @@ suite("MSBuild", () => {
         function validateTargetItemTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateTargetItem(xmlTest.parseElement(elementText), issues);
+                msbuild.validateTargetItem(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1296,7 +1763,7 @@ suite("MSBuild", () => {
         function validateTargetItemGroupTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateTargetItemGroup(xmlTest.parseElement(elementText), issues);
+                msbuild.validateTargetItemGroup(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -1330,7 +1797,7 @@ suite("MSBuild", () => {
         function validateTaskTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateTask(xmlTest.parseElement(elementText), issues);
+                msbuild.validateTask(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -2730,7 +3197,7 @@ suite("MSBuild", () => {
         function validateTaskBodyTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateTaskBody(xmlTest.parseElement(elementText), issues);
+                msbuild.validateTaskBody(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -2760,7 +3227,7 @@ suite("MSBuild", () => {
         function validateUsingTaskTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateUsingTask(xmlTest.parseElement(elementText), issues);
+                msbuild.validateUsingTask(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -2809,7 +3276,7 @@ suite("MSBuild", () => {
         function validateWhenTest(elementText: string, expectedIssues: qub.Issue[]): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
                 const issues = new qub.ArrayList<qub.Issue>();
-                msbuild.validateWhen(xmlTest.parseElement(elementText), issues);
+                msbuild.validateWhen(parseXmlElement(elementText), issues);
                 assert.deepStrictEqual(issues.toArray(), expectedIssues);
             });
         }
@@ -3460,638 +3927,5 @@ suite("MSBuild", () => {
         // PropertyGroup attributes
 
         // PropertyGroup children
-    });
-
-    suite("Extension", () => {
-        test("constructor()", () => {
-            const platform = new mock.Platform();
-            const extension = new msbuild.Extension(platform);
-            assert.deepStrictEqual(extension.name, "qub-common");
-            assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-            assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                { eventName: "Activated" }
-            ]);
-
-            extension.dispose();
-            assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-            assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                { eventName: "Activated" },
-                { eventName: "Deactivated" }
-            ]);
-        });
-
-        suite("on document opened", () => {
-            test("with non-xml document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                const openedDocument = new mock.TextDocument("html", "mock-uri", "I'm not XML!");
-                platform.openTextDocument(openedDocument);
-
-                assert(qub.isDefined(platform.getActiveTextEditor()));
-                assert.deepStrictEqual(platform.getActiveTextEditor().getDocument(), openedDocument);
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-
-            test("with xml document but not MSBuild uri", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                const openedDocument = new mock.TextDocument("xml", "mock-uri", "I'm XML!");
-                platform.openTextDocument(openedDocument);
-
-                assert(qub.isDefined(platform.getActiveTextEditor()));
-                assert.deepStrictEqual(platform.getActiveTextEditor().getDocument(), openedDocument);
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-
-            test("with MSBuild document without declaration or DOCTYPE", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                const openedDocument = new mock.TextDocument("xml", "mock-uri.proj", "");
-                platform.openTextDocument(openedDocument);
-
-                assert(qub.isDefined(platform.getActiveTextEditor()));
-                assert.deepStrictEqual(platform.getActiveTextEditor().getDocument(), openedDocument);
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-        });
-
-        suite("on document saved", () => {
-            test("with non-xml document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.saveTextDocument(new mock.TextDocument("html", "mock-uri", "I'm not XML!"));
-
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-
-            test("with xml document but not MSBuild uri", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.saveTextDocument(new mock.TextDocument("xml", "mock-uri", ""));
-
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-
-            test("with xml document and MSBuild uri", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.saveTextDocument(new mock.TextDocument("xml", "mock-uri.props", `<?xml version="1.0" ?>`));
-
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-        });
-
-        suite("on document changed", () => {
-            test("with non-xml document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("html", "mock-uri", "I'm not XML!")));
-                assert.deepStrictEqual(platform.getCursorIndex(), 0);
-                platform.insertText(0, "Oh wait... ");
-
-                assert.deepStrictEqual(platform.getActiveTextEditor().getDocument().getText(), "Oh wait... I'm not XML!");
-                assert.deepStrictEqual(platform.getCursorIndex(), 11);
-
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-
-            test("with xml document with non-msbuild uri", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("html", "mock-uri", "I'm not XML!")));
-                assert.deepStrictEqual(platform.getCursorIndex(), 0);
-                platform.insertText(0, "Oh wait... ");
-
-                assert.deepStrictEqual(platform.getActiveTextEditor().getDocument().getText(), "Oh wait... I'm not XML!");
-                assert.deepStrictEqual(platform.getCursorIndex(), 11);
-
-                assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                    { eventName: "Activated" }
-                ]);
-            });
-
-            function documentChangedTest(documentText: string, insertIndex: number, insertText: string, expectedDocumentText: string, expectedCursorIndex: number): void {
-                test(`with ${qub.escapeAndQuote(documentText)} and inserting ${qub.escapeAndQuote(insertText)} at index ${insertIndex}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri.targets", documentText)));
-                    assert.deepStrictEqual(platform.getCursorIndex(), 0);
-                    platform.insertText(insertIndex, insertText);
-
-                    assert.deepStrictEqual(platform.getActiveTextEditor().getDocument().getText(), expectedDocumentText);
-                    assert.deepStrictEqual(platform.getCursorIndex(), expectedCursorIndex);
-
-                    assert.deepStrictEqual(platform.getFileTelemetryEvents().toArray(), []);
-                    assert.deepStrictEqual(platform.getRemoteTelemetryEvents().toArray(), [
-                        { eventName: "Activated" }
-                    ]);
-                });
-            }
-
-            documentChangedTest("I'm XML!", 0, "Oh wait... ", "Oh wait... I'm XML!", 11);
-            documentChangedTest("I'm XML!", 4, "[", "I'm [XML!", 5);
-            documentChangedTest("</abc", 5, ">", "</abc>", 6);
-            documentChangedTest("<abc", 4, ">", "<abc></abc>", 5);
-
-            documentChangedTest("<![CDATA", 8, "[", "<![CDATA[]]>", 9);
-            documentChangedTest("<![CDATA]]>", 8, "[", "<![CDATA[]]>", 9);
-            documentChangedTest("<![CDATA]>", 8, "[", "<![CDATA[]]>", 9);
-            documentChangedTest("<![CDATA]]>", 8, "[", "<![CDATA[]]>", 9);
-            documentChangedTest("<a><![CDATA</a>", 11, "[", "<a><![CDATA[]]></a>", 12);
-            documentChangedTest("<a><![CDATA></a>", 11, "[", "<a><![CDATA[]]></a>", 12);
-            documentChangedTest("<a><![CDATA]></a>", 11, "[", "<a><![CDATA[]]></a>", 12);
-            documentChangedTest("<a><![CDATA]]></a>", 11, "[", "<a><![CDATA[]]></a>", 12);
-
-            documentChangedTest("<!-", 3, "-", "<!-- -->", 4);
-            documentChangedTest("<!-->", 3, "-", "<!-- -->", 4);
-            documentChangedTest("<!--->", 3, "-", "<!-- -->", 4);
-            documentChangedTest("<a><!-</a>", 6, "-", "<a><!-- --></a>", 7);
-            documentChangedTest("<a><!-></a>", 6, "-", "<a><!-- --></a>", 7);
-            documentChangedTest("<a><!--></a>", 6, "-", "<a><!-- --></a>", 7);
-            documentChangedTest("<a><!---></a>", 6, "-", "<a><!-- --></a>", 7);
-        });
-
-        suite("on hover", () => {
-            test("with no active document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                assert.deepStrictEqual(platform.getHoverAt(10), undefined);
-            });
-
-            test("with active non-xml document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("html", "mock-uri", "I'm not XML!")));
-
-                assert.deepStrictEqual(platform.getHoverAt(10), undefined);
-            });
-
-            test("with active non-msbuild document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri", "I'm not XML!")));
-
-                assert.deepStrictEqual(platform.getHoverAt(10), undefined);
-            });
-
-            const declarationText: string = `<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`;
-            for (let i = -1; i < declarationText.length + 1; ++i) {
-                test(`with ${qub.escapeAndQuote(declarationText)} at index ${i}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.xproj", declarationText)));
-
-                    assert.deepStrictEqual(platform.getHoverAt(i),
-                        (1 <= i && i <= 5) || (i === 19) || (i === 36) || (53 <= i && i <= 55) ? xml.Hovers.declaration(new qub.Span(0, 56)) :
-                            (6 <= i && i <= 18) ? xml.Hovers.declarationVersion(new qub.Span(6, 13)) :
-                                (20 <= i && i <= 35) ? xml.Hovers.declarationEncoding(new qub.Span(20, 16)) :
-                                    (37 <= i && i <= 52) ? xml.Hovers.declarationStandalone(new qub.Span(37, 16)) :
-                                        undefined);
-                });
-            }
-
-            const doctypeText: string = `<!DOCTYPE root SYSTEM "systemIdentifier" []>`;
-            for (let i = -1; i < doctypeText.length + 1; ++i) {
-                test(`with ${qub.escapeAndQuote(doctypeText)} at index ${i}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.csproj", doctypeText)));
-
-                    assert.deepStrictEqual(platform.getHoverAt(i),
-                        (2 <= i && i <= 9) ? xml.Hovers.doctype(new qub.Span(2, 7)) :
-                            undefined);
-                });
-            }
-
-            const rootElementText: string = `<rootElement><childElement/></rootElement>`;
-            for (let i = -1; i < rootElementText.length + 1; ++i) {
-                test(`with ${qub.escapeAndQuote(rootElementText)} at index ${i}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.vbproj", rootElementText)));
-
-                    assert.deepStrictEqual(platform.getHoverAt(i), undefined);
-                });
-            }
-
-            const projectElementText: string = `<Project DefaultTargets="a" InitialTargets="b" ToolsVersion="c" TreatAsLocalProperty="d" Xmlns="e"></Project>`;
-            for (let i = -1; i < projectElementText.length + 1; ++i) {
-                test(`with ${qub.escapeAndQuote(projectElementText)} at index ${i}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.proj", projectElementText)));
-
-                    assert.deepStrictEqual(platform.getHoverAt(i),
-                        (1 <= i && i <= 8) ? msbuild.getHover(msbuild.ElementType.Project, undefined, undefined, new qub.Span(1, 7)) :
-                            (9 <= i && i <= 23) ? msbuild.getHover(msbuild.ElementType.Project, undefined, "DefaultTargets", new qub.Span(9, 14)) :
-                                (28 <= i && i <= 42) ? msbuild.getHover(msbuild.ElementType.Project, undefined, "InitialTargets", new qub.Span(28, 14)) :
-                                    (47 <= i && i <= 59) ? msbuild.getHover(msbuild.ElementType.Project, undefined, "ToolsVersion", new qub.Span(47, 12)) :
-                                        (64 <= i && i <= 84) ? msbuild.getHover(msbuild.ElementType.Project, undefined, "TreatAsLocalProperty", new qub.Span(64, 20)) :
-                                            (89 <= i && i <= 94) ? msbuild.getHover(msbuild.ElementType.Project, undefined, "Xmlns", new qub.Span(89, 5)) :
-                                                (101 <= i && i <= 108) ? msbuild.getHover(msbuild.ElementType.Project, undefined, undefined, new qub.Span(101, 7)) :
-                                                    undefined);
-                });
-            }
-
-            const propertyGroupElementText: string = `<Project><PropertyGroup><A>A</A></PropertyGroup></Project>`;
-            for (let i = -1; i < propertyGroupElementText.length + 1; ++i) {
-                test(`with ${qub.escapeAndQuote(propertyGroupElementText)} at index ${i}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.proj", propertyGroupElementText)));
-
-                    assert.deepStrictEqual(platform.getHoverAt(i),
-                        (1 <= i && i <= 8) ? msbuild.getHover(msbuild.ElementType.Project, undefined, undefined, new qub.Span(1, 7)) :
-                            (10 <= i && i <= 23) ? msbuild.getHover(msbuild.ElementType.PropertyGroup, undefined, undefined, new qub.Span(10, 13)) :
-                                (25 <= i && i <= 26) ? msbuild.getHover(msbuild.ElementType.Property, undefined, undefined, new qub.Span(25, 1)) :
-                                    (30 <= i && i <= 31) ? msbuild.getHover(msbuild.ElementType.Property, undefined, undefined, new qub.Span(30, 1)) :
-                                        (34 <= i && i <= 47) ? msbuild.getHover(msbuild.ElementType.PropertyGroup, undefined, undefined, new qub.Span(34, 13)) :
-                                            (50 <= i && i <= 57) ? msbuild.getHover(msbuild.ElementType.Project, undefined, undefined, new qub.Span(50, 7)) :
-                                                undefined);
-                });
-            }
-
-            const itemGroupElementText: string = `<Project><ItemGroup><MyItem Include=""/></ItemGroup></Project>`;
-            for (let i = -1; i < itemGroupElementText.length + 1; ++i) {
-                test(`with ${qub.escapeAndQuote(itemGroupElementText)} at index ${i}`, () => {
-                    const platform = new mock.Platform();
-                    const extension = new msbuild.Extension(platform);
-
-                    platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.proj", itemGroupElementText)));
-
-                    assert.deepStrictEqual(platform.getHoverAt(i),
-                        (1 <= i && i <= 8) ? msbuild.getHover(msbuild.ElementType.Project, undefined, undefined, new qub.Span(1, 7)) :
-                            (10 <= i && i <= 19) ? msbuild.getHover(msbuild.ElementType.ItemGroup, undefined, undefined, new qub.Span(10, 9)) :
-                                (21 <= i && i <= 27) ? msbuild.getHover(msbuild.ElementType.Item, undefined, undefined, new qub.Span(21, 6)) :
-                                    (28 <= i && i <= 35) ? msbuild.getHover(msbuild.ElementType.Item, undefined, "Include", new qub.Span(28, 7)) :
-                                        (42 <= i && i <= 51) ? msbuild.getHover(msbuild.ElementType.ItemGroup, undefined, undefined, new qub.Span(42, 9)) :
-                                            (54 <= i && i <= 61) ? msbuild.getHover(msbuild.ElementType.Project, undefined, undefined, new qub.Span(54, 7)) :
-                                                undefined);
-                });
-            }
-        });
-
-        suite("on completions", () => {
-            test("with no active document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                assert.deepStrictEqual(platform.getCompletionsAt(3).toArray(), []);
-            });
-
-            test("with active non-xml document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("html", "mock-uri", "I'm not XML!")));
-
-                assert.deepStrictEqual(platform.getCompletionsAt(4).toArray(), []);
-            });
-
-            test("with active xml document", () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri", "I'm not XML!")));
-
-                assert.deepStrictEqual(platform.getCompletionsAt(4).toArray(), []);
-            });
-
-            function completionTest(documentText: string, expectedCompletions: (index: number) => qub.Completion[]): void {
-                for (let i = -1; i < documentText.length + 1; ++i) {
-                    test(`with ${qub.escapeAndQuote(documentText)} at index ${i}`, () => {
-                        const platform = new mock.Platform();
-                        const extension = new msbuild.Extension(platform);
-
-                        platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "C:/Mock/Folders/temp.props", documentText)));
-
-                        assert.deepStrictEqual(platform.getCompletionsAt(i).toArray(), expectedCompletions(i));
-                    });
-                }
-            }
-
-            function getElementNameCompletion(elementType: msbuild.ElementType, span: qub.Span): qub.Completion {
-                const elementSchema: msbuild.ElementSchema = msbuild.getElementSchema(elementType);
-                assert(elementSchema, `Could not find an element schema for ElementType "${msbuild.ElementType[elementType]}".`);
-                return new qub.Completion(elementSchema.name, span, elementSchema.description);
-            }
-
-            function getAttributeCompletion(elementType: msbuild.ElementType, attributeName: string, span: qub.Span): qub.Completion {
-                const elementSchema: msbuild.ElementSchema = msbuild.getElementSchema(elementType);
-                assert(elementSchema, `Could not find an element schema for ElementType "${msbuild.ElementType[elementType]}".`);
-
-                const attributeSchema: msbuild.AttributeSchema = elementSchema.getAttributeSchema(attributeName);
-                assert(attributeSchema, `Could not find attribute schema for ElementType "${msbuild.ElementType[elementType]}" and AttributeName "${attributeName}".`);
-
-                return new qub.Completion(attributeName, span, attributeSchema.description);
-            }
-
-            function getChildElementNameCompletions(elementType: msbuild.ElementType, prefix: string, span: qub.Span): qub.Completion[] {
-                const elementSchema: msbuild.ElementSchema = msbuild.getElementSchema(elementType);
-                return elementSchema.childElements
-                    .where((childElementSchema: msbuild.ChildElementSchema) => !prefix || qub.startsWithIgnoreCase(childElementSchema.name, prefix))
-                    .map((childElementSchema: msbuild.ChildElementSchema) => new qub.Completion(childElementSchema.name, span, childElementSchema.description))
-                    .toArray();
-            }
-
-            function getTaskNameCompletion(taskName: string, span: qub.Span): qub.Completion {
-                const taskSchema: msbuild.TaskSchema = msbuild.getTaskSchema(taskName);
-                assert(taskSchema, `Could not find a task schema for task name "${taskName}".`);
-
-                return new qub.Completion(taskSchema.name, span, taskSchema.description);
-            }
-
-            function getAllTaskNameCompletions(span: qub.Span, prefix?: string): qub.Completion[] {
-                let result: qub.Iterable<msbuild.TaskSchema> = msbuild.taskSchemas;
-
-                if (prefix) {
-                    result = result.where((taskSchema: msbuild.TaskSchema) => qub.startsWithIgnoreCase(taskSchema.name, prefix));
-                }
-
-                return result.map((taskSchema: msbuild.TaskSchema) => new qub.Completion(taskSchema.name, span, taskSchema.description)).toArray();
-            }
-
-            function getProjectAttributeCompletion(attributeName: string, span: qub.Span): qub.Completion {
-                return getAttributeCompletion(msbuild.ElementType.Project, attributeName, span);
-            }
-
-            completionTest("<", (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 0))] :
-                    []);
-            completionTest(`<?`, (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 0))] :
-                    (2 === index) ? [new qub.Completion("xml", new qub.Span(2, 0))] :
-                        []);
-            completionTest(`<?x`, (index: number) =>
-                (2 <= index && index <= 3) ? [new qub.Completion("xml", new qub.Span(2, 1))] :
-                    []);
-            completionTest("<a", (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 1))] :
-                    []);
-            completionTest("<!", (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 0))] :
-                    []);
-            completionTest("<@", (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 0))] :
-                    []);
-            completionTest("<?xml   ", (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 <= index) ? [new qub.Completion("version", new qub.Span(index, 0))] :
-                        []);
-            completionTest("<?xml  version  ", (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 === index) ? [new qub.Completion("version", new qub.Span(index, 0))] :
-                        (7 <= index && index <= 14) ? [new qub.Completion("version", new qub.Span(7, 7))] :
-                            []);
-            completionTest(`<?xml version="1.0" encoding  `, (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 <= index && index <= 13) ? [new qub.Completion("version", new qub.Span(6, 7))] :
-                        (14 <= index && index <= 18) ? [new qub.Completion(`"1.0"`, new qub.Span(14, 5))] :
-                            (20 <= index && index <= 28) ? [new qub.Completion("encoding", new qub.Span(20, 8))] :
-                                []);
-            completionTest(`<?xml version="1.0" encoding =  `, (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 <= index && index <= 13) ? [new qub.Completion("version", new qub.Span(6, 7))] :
-                        (14 <= index && index <= 18) ? [new qub.Completion(`"1.0"`, new qub.Span(14, 5))] :
-                            (20 <= index && index <= 28) ? [new qub.Completion("encoding", new qub.Span(20, 8))] :
-                                (30 <= index) ? [new qub.Completion(`"utf-8"`, new qub.Span(index, 0))] :
-                                    []);
-            completionTest(`<?xml version="1.0" encoding=>`, (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 <= index && index <= 13) ? [new qub.Completion("version", new qub.Span(6, 7))] :
-                        (14 <= index && index <= 18) ? [new qub.Completion(`"1.0"`, new qub.Span(14, 5))] :
-                            (20 <= index && index <= 28) ? [new qub.Completion("encoding", new qub.Span(20, 8))] :
-                                (29 === index) ? [new qub.Completion(`"utf-8"`, new qub.Span(index, 0))] :
-                                    []);
-            completionTest(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`, (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 <= index && index <= 13) ? [new qub.Completion("version", new qub.Span(6, 7))] :
-                        (14 <= index && index <= 18) ? [new qub.Completion(`"1.0"`, new qub.Span(14, 5))] :
-                            (20 <= index && index <= 28) ? [new qub.Completion("encoding", new qub.Span(20, 8))] :
-                                (29 <= index && index <= 35) ? [new qub.Completion(`"utf-8"`, new qub.Span(29, 7))] :
-                                    (37 <= index && index <= 47) ? [new qub.Completion("standalone", new qub.Span(37, 10))] :
-                                        (48 <= index && index <= 52) ? [new qub.Completion(`"no"`, new qub.Span(48, 5)), new qub.Completion(`"yes"`, new qub.Span(48, 5))] :
-                                            []);
-            completionTest(`<?xml  version=  encoding=  standalone=  ?>`, (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 === index) ? [new qub.Completion("version", new qub.Span(6, 0))] :
-                        (7 <= index && index <= 14) ? [new qub.Completion("version", new qub.Span(7, 7))] :
-                            (15 <= index && index <= 16) ? [new qub.Completion(`"1.0"`, new qub.Span(index, 0))] :
-                                (17 <= index && index <= 25) ? [new qub.Completion("encoding", new qub.Span(17, 8))] :
-                                    (26 <= index && index <= 27) ? [new qub.Completion(`"utf-8"`, new qub.Span(index, 0))] :
-                                        (28 <= index && index <= 38) ? [new qub.Completion("standalone", new qub.Span(28, 10))] :
-                                            (39 <= index && index <= 40) ? [new qub.Completion(`"no"`, new qub.Span(index, 0)), new qub.Completion(`"yes"`, new qub.Span(index, 0))] :
-                                                []);
-            completionTest(`<?xml  spam =  "test"  ?   >`, (index: number) =>
-                (2 <= index && index <= 5) ? [new qub.Completion("xml", new qub.Span(2, 3))] :
-                    (6 === index) ? [new qub.Completion("version", new qub.Span(6, 0))] :
-                        (7 <= index && index <= 11) ? [new qub.Completion("version", new qub.Span(7, 4))] :
-                            (22 <= index && index <= 23) ? [new qub.Completion("encoding", new qub.Span(index, 0))] :
-                                []);
-            completionTest(`<!DOCTYPE root SYSTEM "systemIdentifier" []>`, (index: number) => []);
-            completionTest(`<rootElement><childElement/></rootElement>`, (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 11))] :
-                    (30 <= index && index <= 41) ? [new qub.Completion("rootElement", new qub.Span(30, 11))] :
-                        []);
-            completionTest(`<rootElement><childElement/></>`, (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 11))] :
-                    (30 === index) ? [new qub.Completion("rootElement", new qub.Span(30, 0))] :
-                        []);
-            completionTest(`</rootElement>`, (index: number) => []);
-
-            completionTest(`<>`, (index: number) =>
-                (1 === index) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 0))] : []);
-            completionTest(`<Proj>`, (index: number) =>
-                (1 <= index && index <= 5) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 4))] : []);
-            completionTest(`<Project><></Project>`, (index: number) =>
-                (1 <= index && index <= 8) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 7))] :
-                    (10 === index) ? getChildElementNameCompletions(msbuild.ElementType.Project, "", new qub.Span(10, 0)) :
-                        (13 <= index && index <= 20) ? [new qub.Completion("Project", new qub.Span(13, 7))] :
-                            []);
-            completionTest(`<Project DefaultTargets="" InitialTargets="" ToolsVersion="" TreatAsLocalProperty="" Xmlns=""></Project>`, (index: number) =>
-                (1 <= index && index <= 8) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 7))] :
-                    (9 <= index && index <= 23) ? [getProjectAttributeCompletion("DefaultTargets", new qub.Span(9, 14))] :
-                        (27 <= index && index <= 41) ? [getProjectAttributeCompletion("InitialTargets", new qub.Span(27, 14))] :
-                            (45 <= index && index <= 57) ? [getProjectAttributeCompletion("ToolsVersion", new qub.Span(45, 12))] :
-                                (61 <= index && index <= 81) ? [getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(61, 20))] :
-                                    (85 <= index && index <= 90) ? [getProjectAttributeCompletion("Xmlns", new qub.Span(85, 5))] :
-                                        (96 <= index && index <= 103) ? [new qub.Completion("Project", new qub.Span(96, 7))] :
-                                            []);
-
-            completionTest(`<Project  DefaultTargets=""  InitialTargets=""  ToolsVersion=""  TreatAsLocalProperty=""  Xmlns=""  ></Project>`, (index: number) =>
-                (1 <= index && index <= 8) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 7))] :
-                    (10 <= index && index <= 24) ? [getProjectAttributeCompletion("DefaultTargets", new qub.Span(10, 14))] :
-                        (29 <= index && index <= 43) ? [getProjectAttributeCompletion("InitialTargets", new qub.Span(29, 14))] :
-                            (48 <= index && index <= 60) ? [getProjectAttributeCompletion("ToolsVersion", new qub.Span(48, 12))] :
-                                (65 <= index && index <= 85) ? [getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(65, 20))] :
-                                    (90 <= index && index <= 95) ? [getProjectAttributeCompletion("Xmlns", new qub.Span(90, 5))] :
-                                        (103 <= index && index <= 110) ? [new qub.Completion("Project", new qub.Span(103, 7))] :
-                                            []);
-
-            completionTest(`<Project  DefaultTargets=""  ></Project>`, (index: number) =>
-                (1 <= index && index <= 8) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 7))] :
-                    (9 === index) ?
-                        [
-                            getProjectAttributeCompletion("InitialTargets", new qub.Span(9, 0)),
-                            getProjectAttributeCompletion("ToolsVersion", new qub.Span(9, 0)),
-                            getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(9, 0)),
-                            getProjectAttributeCompletion("Xmlns", new qub.Span(9, 0))
-                        ] :
-                        (10 === index) ?
-                            [
-                                getProjectAttributeCompletion("DefaultTargets", new qub.Span(10, 14)),
-                                getProjectAttributeCompletion("InitialTargets", new qub.Span(10, 14)),
-                                getProjectAttributeCompletion("ToolsVersion", new qub.Span(10, 14)),
-                                getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(10, 14)),
-                                getProjectAttributeCompletion("Xmlns", new qub.Span(10, 14))
-                            ] :
-                            (11 <= index && index <= 24) ? [getProjectAttributeCompletion("DefaultTargets", new qub.Span(10, 14))] :
-                                (27 <= index && index <= 29) ?
-                                    [
-                                        getProjectAttributeCompletion("InitialTargets", new qub.Span(index, 0)),
-                                        getProjectAttributeCompletion("ToolsVersion", new qub.Span(index, 0)),
-                                        getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(index, 0)),
-                                        getProjectAttributeCompletion("Xmlns", new qub.Span(index, 0))
-                                    ] :
-                                    (32 <= index && index <= 39) ? [new qub.Completion("Project", new qub.Span(32, 7))] :
-                                        []);
-
-            completionTest(`<Project  ToolsVersion=""  ></Project>`, (index: number) =>
-                (1 <= index && index <= 8) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 7))] :
-                    (9 === index) ?
-                        [
-                            getProjectAttributeCompletion("DefaultTargets", new qub.Span(index, 0)),
-                            getProjectAttributeCompletion("InitialTargets", new qub.Span(index, 0)),
-                            getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(index, 0)),
-                            getProjectAttributeCompletion("Xmlns", new qub.Span(index, 0))
-                        ] :
-                        (10 === index) ?
-                            [
-                                getProjectAttributeCompletion("DefaultTargets", new qub.Span(10, 12)),
-                                getProjectAttributeCompletion("InitialTargets", new qub.Span(10, 12)),
-                                getProjectAttributeCompletion("ToolsVersion", new qub.Span(10, 12)),
-                                getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(10, 12)),
-                                getProjectAttributeCompletion("Xmlns", new qub.Span(10, 12))
-                            ] :
-                            (11 === index) ?
-                                [
-                                    getProjectAttributeCompletion("ToolsVersion", new qub.Span(10, 12)),
-                                    getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(10, 12))
-                                ] :
-                                (12 <= index && index <= 22) ? [getProjectAttributeCompletion("ToolsVersion", new qub.Span(10, 12))] :
-                                    (25 <= index && index <= 27) ?
-                                        [
-                                            getProjectAttributeCompletion("DefaultTargets", new qub.Span(index, 0)),
-                                            getProjectAttributeCompletion("InitialTargets", new qub.Span(index, 0)),
-                                            getProjectAttributeCompletion("TreatAsLocalProperty", new qub.Span(index, 0)),
-                                            getProjectAttributeCompletion("Xmlns", new qub.Span(index, 0))
-                                        ] :
-                                        (30 <= index && index <= 37) ? [new qub.Completion("Project", new qub.Span(30, 7))] :
-                                            []);
-
-            completionTest(`<Project><Target><Co/><></Target></Project>`, (index: number) =>
-                (1 <= index && index <= 8) ? [getElementNameCompletion(msbuild.ElementType.Project, new qub.Span(1, 7))] :
-                    (10 === index) ? getChildElementNameCompletions(msbuild.ElementType.Project, "", new qub.Span(10, 6)) :
-                        (11 <= index && index <= 16) ? getChildElementNameCompletions(msbuild.ElementType.Project, "T", new qub.Span(10, 6)) :
-                            (18 === index) ? getAllTaskNameCompletions(new qub.Span(18, 2)) :
-                                (19 === index) ? getAllTaskNameCompletions(new qub.Span(18, 2), "C") :
-                                    (20 === index) ? getAllTaskNameCompletions(new qub.Span(18, 2), "Co") :
-                                        (23 === index) ? getAllTaskNameCompletions(new qub.Span(23, 0)) :
-                                            (26 <= index && index <= 32) ? [new qub.Completion("Target", new qub.Span(26, 6))] :
-                                                (35 <= index && index <= 42) ? [new qub.Completion("Project", new qub.Span(35, 7))] :
-                                                    []);
-        });
-
-        suite("on format document", () => {
-            test(`with no active editor`, () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-                assert.deepStrictEqual(platform.getFormattedDocument(), undefined);
-            });
-
-            test(`with non-xml active editor`, () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("html", "mock-uri", "I'm not XML!")));
-
-                assert.deepStrictEqual(platform.getFormattedDocument(), undefined);
-            });
-
-            test(`with non-msbuild active editor`, () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri", "I'm not XML!")));
-
-                assert.deepStrictEqual(platform.getFormattedDocument(), undefined);
-            });
-
-            test(`with ""`, () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri.proj", "")));
-
-                assert.deepStrictEqual(platform.getFormattedDocument(), "");
-            });
-
-            test(`with "<a></a>"`, () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri.proj", "<a></a>")));
-
-                assert.deepStrictEqual(platform.getFormattedDocument(), "<a/>");
-            });
-
-            test(`with "<a><b><c></c></b></a>"`, () => {
-                const platform = new mock.Platform();
-                const extension = new msbuild.Extension(platform);
-
-                platform.setActiveTextEditor(new mock.TextEditor(new mock.TextDocument("xml", "mock-uri.proj", "<a><b><c></c></b></a>")));
-
-                assert.deepStrictEqual(platform.getFormattedDocument(), "<a>\n  <b>\n    <c/>\n  </b>\n</a>");
-            });
-        });
     });
 });

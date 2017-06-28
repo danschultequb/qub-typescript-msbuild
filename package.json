@@ -1,9 +1,9 @@
 {
-  "name": "qub-json",
-  "version": "1.1.0",
-  "description": "A collection of classes and functions for interacting with JSON documents",
-  "main": "output/sources/Json",
-  "typings": "output/sources/Json",
+  "name": "qub-msbuild",
+  "version": "1.0.0",
+  "description": "A collection of classes and functions for interacting with MSBuild documents",
+  "main": "output/sources/MSBuild",
+  "typings": "output/sources/MSBuild",
   "files": [
     "output/sources/"
   ],
@@ -11,7 +11,7 @@
     "build": "tsc -p .",
     "prepublish": "npm run build",
     "test": "mocha --colors --require source-map-support/register --ui tdd output/tests/",
-    "coverage": "nyc npm test && open-cli output/coverage/Json.ts.html",
+    "coverage": "nyc npm test && open-cli output/coverage/MSBuild.ts.html",
     "travis-test": "nyc --check-coverage --functions 100 --lines 100 --branches 100 --statements 100 --reporter=text-lcov npm test | coveralls"
   },
   "nyc": {
@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/danschultequb/qub-typescript-json.git"
+    "url": "git+https://github.com/danschultequb/qub-typescript-msbuild.git"
   },
   "keywords": [
     "qub"
@@ -35,9 +35,9 @@
   "author": "Dan Schulte",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/danschultequb/qub-typescript-json/issues"
+    "url": "https://github.com/danschultequb/qub-typescript-msbuild/issues"
   },
-  "homepage": "https://github.com/danschultequb/qub-typescript-json#readme",
+  "homepage": "https://github.com/danschultequb/qub-typescript-msbuild#readme",
   "devDependencies": {
     "@types/mocha": "^2.2.41",
     "@types/node": "^8.0.3",
@@ -49,6 +49,7 @@
     "typescript": "^2.3.4"
   },
   "dependencies": {
-    "qub": "^1.2.2"
+    "qub": "^1.2.2",
+    "qub-xml": "^1.0.0"
   }
 }

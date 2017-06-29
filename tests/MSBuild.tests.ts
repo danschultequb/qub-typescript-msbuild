@@ -1006,6 +1006,103 @@ suite("MSBuild", () => {
             [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 8))]);
     });
 
+    suite("TaskElement", () => {
+        function taskElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const taskElement = new msbuild.TaskElement(parseXmlElement(text));
+                assert.deepStrictEqual(taskElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(taskElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(taskElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(taskElement.type, msbuild.ElementType.Task, "Wrong type");
+            });
+        }
+
+        taskElementTest("<Copy></Copy>",
+            [parseXmlName("Copy", 1), parseXmlName("Copy", 8)]);
+
+        taskElementTest(`<Copy Condition="blah"></Copy>`,
+            [parseXmlName("Copy", 1), parseXmlName("Copy", 25)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 6))]);
+    });
+
+    suite("TaskElement", () => {
+        function taskElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const taskElement = new msbuild.TaskElement(parseXmlElement(text));
+                assert.deepStrictEqual(taskElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(taskElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(taskElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(taskElement.type, msbuild.ElementType.Task, "Wrong type");
+            });
+        }
+
+        taskElementTest("<Copy></Copy>",
+            [parseXmlName("Copy", 1), parseXmlName("Copy", 8)]);
+
+        taskElementTest(`<Copy Condition="blah"></Copy>`,
+            [parseXmlName("Copy", 1), parseXmlName("Copy", 25)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 6))]);
+    });
+
+    suite("TaskBodyElement", () => {
+        function taskBodyElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const taskBodyElement = new msbuild.TaskBodyElement(parseXmlElement(text));
+                assert.deepStrictEqual(taskBodyElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(taskBodyElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(taskBodyElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(taskBodyElement.type, msbuild.ElementType.TaskBody, "Wrong type");
+            });
+        }
+
+        taskBodyElementTest("<TaskBody></TaskBody>",
+            [parseXmlName("TaskBody", 1), parseXmlName("TaskBody", 12)]);
+
+        taskBodyElementTest(`<TaskBody Condition="blah"></TaskBody>`,
+            [parseXmlName("TaskBody", 1), parseXmlName("TaskBody", 29)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 10))]);
+    });
+
+    suite("UsingTaskElement", () => {
+        function usingTaskElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = []): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const usingTaskElement = new msbuild.UsingTaskElement(parseXmlElement(text));
+                assert.deepStrictEqual(usingTaskElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(usingTaskElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(usingTaskElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(usingTaskElement.type, msbuild.ElementType.UsingTask, "Wrong type");
+            });
+        }
+
+        usingTaskElementTest("<UsingTask></UsingTask>",
+            [parseXmlName("UsingTask", 1), parseXmlName("UsingTask", 13)]);
+
+        usingTaskElementTest(`<UsingTask Condition="blah"></UsingTask>`,
+            [parseXmlName("UsingTask", 1), parseXmlName("UsingTask", 30)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 11))]);
+    });
+
+    suite("WhenElement", () => {
+        function whenElementTest(text: string, names: xml.Name[], attributes: msbuild.Attribute[] = [], expectedCondition?: msbuild.Attribute): void {
+            test(`with ${qub.escapeAndQuote(text)}`, () => {
+                const whenElement = new msbuild.WhenElement(parseXmlElement(text));
+                assert.deepStrictEqual(whenElement.names.toArray(), names, "Wrong names");
+                assert.deepStrictEqual(whenElement.attributes.toArray(), attributes, "Wrong attributes");
+                assert.deepStrictEqual(whenElement.span, new qub.Span(0, text.length), "Wrong span");
+                assert.deepStrictEqual(whenElement.type, msbuild.ElementType.When, "Wrong type");
+                assert.deepStrictEqual(whenElement.condition, expectedCondition);
+            });
+        }
+
+        whenElementTest("<When></When>",
+            [parseXmlName("When", 1), parseXmlName("When", 8)]);
+
+        whenElementTest(`<When Condition="blah"></When>`,
+            [parseXmlName("When", 1), parseXmlName("When", 25)],
+            [new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 6))],
+            new msbuild.Attribute(parseXmlAttribute(`Condition="blah"`, 6)));
+    });
+
     suite("UnrecognizedElement", () => {
         test(`with "<"`, () => {
             const xmlElement = new xml.UnrecognizedTag(parseXmlLexes("<"));
@@ -1062,6 +1159,30 @@ suite("MSBuild", () => {
         });
     });
 
+    suite("Document", () => {
+        suite("elements()", () => {
+            function elementsTest(text: string, expectedElements: msbuild.Element[] = []): void {
+                test(`with ${qub.escapeAndQuote(text)}`, () => {
+                    const document = new msbuild.Document(xml.parse(text));
+                    assert.deepStrictEqual(document.elements.toArray(), expectedElements);
+                });
+            }
+
+            elementsTest(null);
+            elementsTest(undefined);
+            elementsTest("");
+            elementsTest("    ");
+            elementsTest("\n\n\n");
+            elementsTest("hello there!");
+            elementsTest("<Project/>", [new msbuild.ProjectElement(parseXmlEmptyElement("<Project/>"))]);
+            elementsTest("<Apples/>", [new msbuild.UnrecognizedElement(parseXmlEmptyElement("<Apples/>"))]);
+            elementsTest("<Project/><Project/><Target/>", [
+                new msbuild.ProjectElement(parseXmlEmptyElement("<Project/>", 0)),
+                new msbuild.ProjectElement(parseXmlEmptyElement("<Project/>", 10)),
+                new msbuild.UnrecognizedElement(parseXmlEmptyElement("<Target/>", 20))]);
+        });
+    });
+
     suite("validateElement()", () => {
         function validateElementTest(elementType: msbuild.ElementType, elementText: string, expectedIssues: qub.Issue[] = []): void {
             test(`with ${qub.escapeAndQuote(elementText)}`, () => {
@@ -1075,6 +1196,9 @@ suite("MSBuild", () => {
             msbuild.Issues.invalidLastChildElement("Choose", "Otherwise", new qub.Span(28, 12)),
             msbuild.Issues.atMostOneChildElement("Choose", "Otherwise", new qub.Span(40, 23))
         ]);
+
+        validateElementTest(msbuild.ElementType.When, `<When Condition ></When>`, []);
+        validateElementTest(msbuild.ElementType.Choose, `<Choose><When Condition /></Choose>`, []);
     });
 
     suite("validateChoose()", () => {

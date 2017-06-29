@@ -693,10 +693,6 @@ export class UnrecognizedElement extends Element {
 }
 
 export class Issues {
-    public static onlyOneProjectAllowed(span: qub.Span): qub.Issue {
-        return qub.Error(`A MSBuild document can only have one "Project" element.`, span);
-    }
-
     public static expectedProjectElement(span: qub.Span): qub.Issue {
         return qub.Error(`Expected the root element to be a "Project" element.`, span);
     }
@@ -765,10 +761,6 @@ export class Issues {
         return qub.Error(`Missing end quote (${quote}).`, span);
     }
 
-    public static missingEqualsSign(span: qub.Span): qub.Issue {
-        return qub.Error(`Missing equals sign ('=').`, span);
-    }
-
     public static missingSecondEqualsSign(span: qub.Span): qub.Issue {
         return qub.Error(`Missing second equals sign ('=').`, span);
     }
@@ -816,10 +808,6 @@ export class Document {
                 }
             }
         }
-    }
-
-    public get xmlDocument(): xml.Document {
-        return this._xmlDocument;
     }
 
     public get project(): ProjectElement {
